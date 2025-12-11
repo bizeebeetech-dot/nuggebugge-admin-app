@@ -12,7 +12,7 @@ import {
   CardContent,
   Grid,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -144,6 +144,47 @@ function Home() {
 
         {/* Quick Access Cards */}
         <Grid container spacing={3}>
+          {/* Dashboard Card - First */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%)',
+                color: '#fff',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.25)',
+                },
+              }}
+              onClick={() => navigate('/dashboard')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#7877c6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Dashboard sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Dashboard
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  View live stats, downloads & invoices
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
           <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
@@ -176,7 +217,46 @@ function Home() {
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Manage States, Degrees, Branches and more
+                  Manage States, Districts, and School Boards
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Schools Card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/schools')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#0891b2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <School sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Schools
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage schools with state, district & board
                 </Typography>
               </CardContent>
             </Card>

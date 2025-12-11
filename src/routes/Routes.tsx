@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
+import Dashboard from '../pages/Dashboard';
 import Entities from '../pages/Entities';
+import SchoolList from '../pages/SchoolList';
 import TaskList from '../pages/TaskList';
 import StudentList from '../pages/StudentList';
 import UserList from '../pages/UserList';
@@ -47,10 +49,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/entities"
         element={
           <ProtectedRoute>
             <Entities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/schools"
+        element={
+          <ProtectedRoute>
+            <SchoolList />
           </ProtectedRoute>
         }
       />

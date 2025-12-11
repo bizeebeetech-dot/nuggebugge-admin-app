@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Box, Typography, AppBar, Toolbar, Avatar, Menu, MenuItem, IconButton, Divider, Card, CardContent, Grid, } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -58,6 +58,23 @@ function Home() {
                                     }, children: [_jsxs(MenuItem, { onClick: handleMenuClose, children: [_jsx(Person, { sx: { mr: 1.5, fontSize: '1.2rem', color: 'rgba(255,255,255,0.7)' } }), "Profile"] }), _jsx(Divider, { sx: { borderColor: 'rgba(255,255,255,0.1)' } }), _jsxs(MenuItem, { onClick: handleLogout, sx: { color: '#ff6b6b !important' }, children: [_jsx(Logout, { sx: { mr: 1.5, fontSize: '1.2rem' } }), "Logout"] })] })] })] }) }), _jsxs(Box, { sx: { p: 4 }, children: [_jsxs(Typography, { variant: "h4", component: "h1", gutterBottom: true, sx: { color: '#1a1a2e', mb: 1 }, children: ["Welcome, ", user?.first_name, "! \uD83D\uDC4B"] }), _jsx(Typography, { variant: "body1", color: "text.secondary", sx: { mb: 4 }, children: "Manage your dashboard and access all features" }), _jsxs(Grid, { container: true, spacing: 3, children: [_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
+                                        background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%)',
+                                        color: '#fff',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            boxShadow: '0 8px 25px rgba(0,0,0,0.25)',
+                                        },
+                                    }, onClick: () => navigate('/dashboard'), children: _jsxs(CardContent, { sx: { p: 3 }, children: [_jsxs(Box, { sx: { display: 'flex', alignItems: 'center', gap: 2, mb: 2 }, children: [_jsx(Box, { sx: {
+                                                            width: 48,
+                                                            height: 48,
+                                                            borderRadius: 2,
+                                                            bgcolor: '#7877c6',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }, children: _jsx(Dashboard, { sx: { color: '#fff', fontSize: 24 } }) }), _jsx(Typography, { variant: "h6", sx: { fontWeight: 600 }, children: "Dashboard" })] }), _jsx(Typography, { variant: "body2", sx: { color: 'rgba(255,255,255,0.7)' }, children: "View live stats, downloads & invoices" })] }) }) }), _jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
                                         '&:hover': {
                                             transform: 'translateY(-4px)',
                                             boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
@@ -70,7 +87,22 @@ function Home() {
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             justifyContent: 'center',
-                                                        }, children: _jsx(Category, { sx: { color: '#fff', fontSize: 24 } }) }), _jsx(Typography, { variant: "h6", sx: { fontWeight: 600 }, children: "Add Entities" })] }), _jsx(Typography, { variant: "body2", color: "text.secondary", children: "Manage States, Degrees, Branches and more" })] }) }) }), _jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
+                                                        }, children: _jsx(Category, { sx: { color: '#fff', fontSize: 24 } }) }), _jsx(Typography, { variant: "h6", sx: { fontWeight: 600 }, children: "Add Entities" })] }), _jsx(Typography, { variant: "body2", color: "text.secondary", children: "Manage States, Districts, and School Boards" })] }) }) }), _jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                                        },
+                                    }, onClick: () => navigate('/schools'), children: _jsxs(CardContent, { sx: { p: 3 }, children: [_jsxs(Box, { sx: { display: 'flex', alignItems: 'center', gap: 2, mb: 2 }, children: [_jsx(Box, { sx: {
+                                                            width: 48,
+                                                            height: 48,
+                                                            borderRadius: 2,
+                                                            bgcolor: '#0891b2',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }, children: _jsx(School, { sx: { color: '#fff', fontSize: 24 } }) }), _jsx(Typography, { variant: "h6", sx: { fontWeight: 600 }, children: "Schools" })] }), _jsx(Typography, { variant: "body2", color: "text.secondary", children: "Manage schools with state, district & board" })] }) }) }), _jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
                                         '&:hover': {

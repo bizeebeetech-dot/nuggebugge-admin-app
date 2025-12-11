@@ -1,6 +1,7 @@
 export interface Entity {
-    id: number;
+    id: string | number;
     name: string;
+    state_id?: string;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -15,18 +16,21 @@ export interface SingleEntityResponse {
     data: Entity;
     message?: string;
 }
-export type EntityType = 'state' | 'degree' | 'branch' | 'batch' | 'implementation_year' | 'activity_category' | 'activity_type';
+export type EntityType = 'state' | 'district' | 'school_board';
+export declare const entityLabels: Record<EntityType, string>;
 export declare const entityService: {
     getAll(entityType: EntityType, search?: string): Promise<Entity[]>;
-    getById(entityType: EntityType, id: number): Promise<Entity>;
+    getById(entityType: EntityType, id: string | number): Promise<Entity>;
     create(entityType: EntityType, data: {
         name: string;
+        state_id?: string;
     }): Promise<Entity>;
-    update(entityType: EntityType, id: number, data: {
+    update(entityType: EntityType, id: string | number, data: {
         name?: string;
+        state_id?: string;
         is_active?: boolean;
     }): Promise<Entity>;
-    toggleActive(entityType: EntityType, id: number): Promise<Entity>;
-    delete(entityType: EntityType, id: number): Promise<void>;
+    toggleActive(entityType: EntityType, id: string | number): Promise<Entity>;
+    delete(entityType: EntityType, id: string | number): Promise<void>;
 };
 export default entityService;

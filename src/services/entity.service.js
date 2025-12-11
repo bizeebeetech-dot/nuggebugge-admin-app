@@ -1,4 +1,9 @@
 import api from './api';
+export const entityLabels = {
+    state: 'State',
+    district: 'District',
+    school_board: 'School Board',
+};
 export const entityService = {
     async getAll(entityType, search) {
         const params = search ? { search } : {};
