@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
-import { activityService, taskService, Activity, Task } from '../services/submission.service';
+import { activityService, taskService, Task } from '../services/submission.service';
 
 export default function TaskList() {
   const navigate = useNavigate();

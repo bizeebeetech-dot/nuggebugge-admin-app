@@ -27,7 +27,6 @@ import {
   Delete,
   Search,
   Add,
-  Clear,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import entityService, { Entity, EntityType } from '../services/entity.service';

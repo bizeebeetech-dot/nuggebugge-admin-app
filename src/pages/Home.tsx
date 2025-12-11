@@ -12,7 +12,7 @@ import {
   CardContent,
   Grid,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, Assignment, People } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -259,10 +259,167 @@ function Home() {
           </Grid>
 
         </Grid>
+
+        {/* Website Pages Section */}
+        <Typography variant="h5" component="h2" sx={{ color: '#1a1a2e', mt: 4, mb: 2 }}>
+          Website Pages Management
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/home')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#ec4899',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <HomeIcon sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 1: Home
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  4 Sliding Cover Photos & Text Content
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/activities')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#8b5cf6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Event sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 2: Activities
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  List of Activities with Photo Attachments
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/about-us')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#14b8a6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Groups sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 3: About Us
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Team Members, Photos & Contact Details
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/statistics')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f97316',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BarChart sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 4: Statistics
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Stats & App Feedback Scrolling Window
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Box>
     </Box>
   );
 }
 
 export default Home;
-

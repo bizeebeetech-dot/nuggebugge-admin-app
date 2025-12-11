@@ -5,6 +5,10 @@ import Entities from '../pages/Entities';
 import TaskList from '../pages/TaskList';
 import StudentList from '../pages/StudentList';
 import UserList from '../pages/UserList';
+import WebsiteHome from '../pages/WebsiteHome';
+import WebsiteActivities from '../pages/WebsiteActivities';
+import WebsiteAboutUs from '../pages/WebsiteAboutUs';
+import WebsiteStatistics from '../pages/WebsiteStatistics';
 import authService from '../services/auth.service';
 
 // Protected route wrapper
@@ -74,9 +78,40 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/website/home"
+        element={
+          <ProtectedRoute>
+            <WebsiteHome />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/activities"
+        element={
+          <ProtectedRoute>
+            <WebsiteActivities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/about-us"
+        element={
+          <ProtectedRoute>
+            <WebsiteAboutUs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/statistics"
+        element={
+          <ProtectedRoute>
+            <WebsiteStatistics />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
 
 export default AppRoutes;
-
