@@ -184,6 +184,11 @@ export const submissionService = {
     return response.data.data;
   },
 
+  async update(id: number, data: Partial<Submission>): Promise<Submission> {
+    const response = await api.put(`/submissions/${id}`, data);
+    return response.data.data;
+  },
+
   async getStats(taskId: number): Promise<SubmissionStats> {
     const response = await api.get(`/submissions/task/${taskId}/stats`);
     return response.data.data;

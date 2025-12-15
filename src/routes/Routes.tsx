@@ -6,6 +6,8 @@ import Entities from '../pages/Entities';
 import SchoolList from '../pages/SchoolList';
 import TaskList from '../pages/TaskList';
 import StudentList from '../pages/StudentList';
+import Evaluation from '../pages/Evaluation';
+import AnswerEvaluation from '../pages/AnswerEvaluation';
 import StudentProfiles from '../pages/StudentProfiles';
 import StudentProfileDetail from '../pages/StudentProfileDetail';
 import StudentOrders from '../pages/StudentOrders';
@@ -90,6 +92,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <StudentList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluation"
+        element={
+          <ProtectedRoute>
+            <Evaluation />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluation/:studentId/:activityId/answer"
+        element={
+          <ProtectedRoute>
+            <AnswerEvaluation />
           </ProtectedRoute>
         }
       />

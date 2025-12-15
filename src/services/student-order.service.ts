@@ -8,12 +8,14 @@ export interface StudentOrder {
   purchased_response: string | null;
   invoice_number: string;
   status: 'pending' | 'completed';
+  archive_status?: 'active' | 'archive';
   student?: {
     id: number;
     name: string;
     email: string;
     app_code: string;
     phone?: string;
+    school_name?: string;
   };
   activity?: {
     id: number;
@@ -48,6 +50,17 @@ class StudentOrderService {
 
   async getByStudentId(studentId: number): Promise<StudentOrder[]> {
     const response = await api.get(`/student-orders/student/${studentId}`);
+    return response.data.data;
+  }
+
+  async getByActivityId(activityId: number, archiveStatus?: 'active' | 'archive'): Promise<StudentOrder[]> {
+    const params = archiveStatus ? { archive_status: archiveStatus } : {};
+    const response = await api.get(`/student-orders/activity/${activityId}`, { params });
+    return response.data.data;
+  }
+
+  async updateArchiveStatus(id: number, archiveStatus: 'active' | 'archive'): Promise<StudentOrder> {
+    const response = await api.patch(`/student-orders/${id}/archive-status`, { archive_status: archiveStatus });
     return response.data.data;
   }
 

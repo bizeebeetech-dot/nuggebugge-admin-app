@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -20,8 +20,6 @@ import {
   MenuItem,
   IconButton,
   Divider,
-  Breadcrumbs,
-  Link,
   CircularProgress,
   Tabs,
   Tab,
@@ -31,13 +29,11 @@ import {
   Logout,
   Person,
   KeyboardArrowDown,
-  NavigateNext,
   Archive,
   Unarchive,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
-import { taskService } from '../services/submission.service';
 import { studentOrderService, StudentOrder } from '../services/student-order.service';
 
 interface TabPanelProps {
@@ -52,8 +48,8 @@ function TabPanel(props: TabPanelProps) {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`student-tabpanel-${index}`}
-      aria-labelledby={`student-tab-${index}`}
+      id={`evaluation-tabpanel-${index}`}
+      aria-labelledby={`evaluation-tab-${index}`}
       {...other}
     >
       {value === index && <Box sx={{ p: 0 }}>{children}</Box>}
@@ -61,8 +57,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function StudentList() {
-  const { taskId } = useParams<{ taskId: string }>();
+export default function Evaluation() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = authService.getUser();
@@ -74,33 +69,28 @@ export default function StudentList() {
 
   const open = Boolean(anchorEl);
 
-  // Fetch task details to get activity_id
-  const { data: task } = useQuery({
-    queryKey: ['task', taskId],
-    queryFn: () => taskService.getById(parseInt(taskId!, 10)),
-    enabled: !!taskId,
-  });
-
-  const activityId = task?.activity?.id;
-
-  // Fetch student orders for the activity (Active tab)
+  // Fetch all student orders (Active)
   const { data: activeOrders = [], isLoading: activeLoading } = useQuery({
-    queryKey: ['student-orders-activity', activityId, 'active', search],
+    queryKey: ['student-orders-all', 'active', search],
     queryFn: () => {
-      if (!activityId) return Promise.resolve([]);
-      return studentOrderService.getByActivityId(activityId, 'active');
+      // Get all orders and filter by archive_status
+      return studentOrderService.getAll(search || undefined).then((orders) =>
+        orders.filter((order) => (order.archive_status || 'active') === 'active')
+      );
     },
-    enabled: !!activityId && tabValue === 0,
+    enabled: tabValue === 0,
   });
 
-  // Fetch student orders for the activity (Archive tab)
+  // Fetch all student orders (Archive)
   const { data: archiveOrders = [], isLoading: archiveLoading } = useQuery({
-    queryKey: ['student-orders-activity', activityId, 'archive', search],
+    queryKey: ['student-orders-all', 'archive', search],
     queryFn: () => {
-      if (!activityId) return Promise.resolve([]);
-      return studentOrderService.getByActivityId(activityId, 'archive');
+      // Get all orders and filter by archive_status
+      return studentOrderService.getAll(search || undefined).then((orders) =>
+        orders.filter((order) => order.archive_status === 'archive')
+      );
     },
-    enabled: !!activityId && tabValue === 1,
+    enabled: tabValue === 1,
   });
 
   // Update archive status mutation
@@ -108,7 +98,7 @@ export default function StudentList() {
     mutationFn: ({ id, archiveStatus }: { id: number; archiveStatus: 'active' | 'archive' }) =>
       studentOrderService.updateArchiveStatus(id, archiveStatus),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student-orders-activity', activityId] });
+      queryClient.invalidateQueries({ queryKey: ['student-orders-all'] });
     },
   });
 
@@ -261,110 +251,59 @@ export default function StudentList() {
 
       {/* Main Content */}
       <Box sx={{ p: 3 }}>
-        {/* Breadcrumb */}
-        <Breadcrumbs
-          separator={<NavigateNext fontSize="small" />}
-          sx={{ mb: 2 }}
-        >
-          <Link
-            color="primary"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/tasks');
-            }}
-            sx={{ textDecoration: 'none', fontWeight: 500 }}
-          >
-            {task?.activity?.points || 20} POINT TASK LIST
-          </Link>
-          <Typography color="text.secondary" fontWeight={500}>
-            {task?.activity?.points || 20} STUDENT LIST
-          </Typography>
-        </Breadcrumbs>
-
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           {/* Header Section */}
           <Box sx={{ p: 3, borderBottom: '1px solid #e5e7eb' }}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-              {task?.activity?.points || 20} STUDENT LIST
+              Student Evaluation
             </Typography>
 
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-start' }}>
-              {/* Search */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Search by name, APP ID, school, or activity"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search sx={{ color: 'rgba(0,0,0,0.4)' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: 300 }}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleSearch}
-                  sx={{
-                    bgcolor: '#6366f1',
-                    '&:hover': { bgcolor: '#4f46e5' },
-                    textTransform: 'none',
-                  }}
-                >
-                  Search
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleClearSearch}
-                  sx={{
-                    bgcolor: '#475569',
-                    '&:hover': { bgcolor: '#334155' },
-                    textTransform: 'none',
-                  }}
-                >
-                  Clear
-                </Button>
-              </Box>
-
-              {/* Activity Info */}
-              <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', ml: 'auto' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Activity Name :
-                  </Typography>
-                  <Typography variant="body1" fontWeight={600} sx={{ maxWidth: 350 }}>
-                    {task?.activity?.name || 'Loading...'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Activity Type :
-                  </Typography>
-                  <Typography variant="body1" fontWeight={600}>
-                    {task?.activity?.points || 20} Points
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Task Number :
-                  </Typography>
-                  <Typography variant="body1" fontWeight={600}>
-                    {task?.task_number || 'Loading...'}
-                  </Typography>
-                </Box>
-              </Box>
+            {/* Search */}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                size="small"
+                placeholder="Search by name, APP ID, school, or activity"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'rgba(0,0,0,0.4)' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ width: 400 }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleSearch}
+                sx={{
+                  bgcolor: '#6366f1',
+                  '&:hover': { bgcolor: '#4f46e5' },
+                  textTransform: 'none',
+                }}
+              >
+                Search
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleClearSearch}
+                sx={{
+                  bgcolor: '#475569',
+                  '&:hover': { bgcolor: '#334155' },
+                  textTransform: 'none',
+                }}
+              >
+                Clear
+              </Button>
             </Box>
           </Box>
 
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: '#fff' }}>
-            <Tabs 
-              value={tabValue} 
+            <Tabs
+              value={tabValue}
               onChange={(_, newValue) => setTabValue(newValue)}
               sx={{
                 '& .MuiTab-root': {
@@ -394,12 +333,24 @@ export default function StudentList() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 600, color: '#475569', width: 60 }}>Sl.</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Student Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>APP ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>School Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Activity Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>To Evaluate</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Shifting</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Student Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>
+                      APP ID
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      School Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Activity Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>
+                      To Evaluate
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Shifting
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -434,7 +385,9 @@ export default function StudentList() {
                           {order.student?.app_code || 'N/A'}
                         </TableCell>
                         <TableCell>{order.student?.school_name || 'N/A'}</TableCell>
-                        <TableCell>{order.activity?.title || order.activity?.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          {order.activity?.title || order.activity?.name || 'N/A'}
+                        </TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
@@ -491,12 +444,24 @@ export default function StudentList() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 600, color: '#475569', width: 60 }}>Sl.</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Student Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>APP ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>School Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Activity Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>To Evaluate</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>Shifting</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Student Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>
+                      APP ID
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      School Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Activity Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 120 }}>
+                      To Evaluate
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#475569', minWidth: 150 }}>
+                      Shifting
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -531,14 +496,15 @@ export default function StudentList() {
                           {order.student?.app_code || 'N/A'}
                         </TableCell>
                         <TableCell>{order.student?.school_name || 'N/A'}</TableCell>
-                        <TableCell>{order.activity?.title || order.activity?.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          {order.activity?.title || order.activity?.name || 'N/A'}
+                        </TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              // Navigate to evaluation page or open evaluation dialog
-                              alert('Evaluation feature - to be implemented');
+                              navigate(`/evaluation/${order.student_id}/${order.activity_id}/answer`);
                             }}
                             sx={{
                               color: '#22c55e',
@@ -586,3 +552,4 @@ export default function StudentList() {
     </Box>
   );
 }
+

@@ -12,7 +12,7 @@ import {
   CardContent,
   Grid,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, Assignment, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School, PersonSearch, Receipt, FitnessCenter } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School, PersonSearch, Receipt, FitnessCenter, Assignment } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -262,6 +262,7 @@ function Home() {
             </Card>
           </Grid>
 
+          {/* Evaluation Card */}
           <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
@@ -272,7 +273,7 @@ function Home() {
                   boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
                 },
               }}
-              onClick={() => navigate('/tasks')}
+              onClick={() => navigate('/evaluation')}
             >
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -290,11 +291,11 @@ function Home() {
                     <Assignment sx={{ color: '#fff', fontSize: 24 }} />
                   </Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Task List
+                    Evaluation
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  View tasks and evaluate student submissions
+                  Evaluate student submissions (Active & Archive)
                 </Typography>
               </CardContent>
             </Card>
