@@ -6,7 +6,12 @@ import Entities from '../pages/Entities';
 import SchoolList from '../pages/SchoolList';
 import TaskList from '../pages/TaskList';
 import StudentList from '../pages/StudentList';
+import StudentProfiles from '../pages/StudentProfiles';
+import StudentProfileDetail from '../pages/StudentProfileDetail';
+import StudentOrders from '../pages/StudentOrders';
 import UserList from '../pages/UserList';
+import ActivityList from '../pages/ActivityList';
+import ActivityEdit from '../pages/ActivityEdit';
 import WebsiteHome from '../pages/WebsiteHome';
 import WebsiteActivities from '../pages/WebsiteActivities';
 import WebsiteAboutUs from '../pages/WebsiteAboutUs';
@@ -89,10 +94,50 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/student-profiles"
+        element={
+          <ProtectedRoute>
+            <StudentProfiles />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-profiles/:id"
+        element={
+          <ProtectedRoute>
+            <StudentProfileDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-orders"
+        element={
+          <ProtectedRoute>
+            <StudentOrders />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/users"
         element={
           <ProtectedRoute>
             <UserList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/activities"
+        element={
+          <ProtectedRoute>
+            <ActivityList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/activities/:id"
+        element={
+          <ProtectedRoute>
+            <ActivityEdit />
           </ProtectedRoute>
         }
       />
