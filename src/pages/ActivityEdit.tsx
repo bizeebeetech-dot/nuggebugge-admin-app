@@ -73,7 +73,7 @@ export default function ActivityEdit() {
   const activityId = parseInt(id || '0', 10);
 
   // Fetch activity
-  const { data: activity, isLoading: activityLoading } = useQuery({
+  const { isLoading: activityLoading } = useQuery({
     queryKey: ['activity', activityId],
     queryFn: async () => {
       const data = await activityService.getById(activityId);
@@ -449,7 +449,7 @@ export default function ActivityEdit() {
                   },
                 }}
               >
-                {tabsWithTasks.map((dayRange, index) => (
+                {tabsWithTasks.map((dayRange) => (
                   <Tab
                     key={dayRange}
                     label={`${dayRange} (${tasksByDayRange[dayRange].length})`}

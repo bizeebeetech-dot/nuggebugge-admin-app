@@ -25,11 +25,12 @@ interface TabConfig {
   title: string;
 }
 
-// Only 3 tabs: State, District, School Board
+// Tabs: State, District, School Board, Class
 const tabs: TabConfig[] = [
   { label: 'STATE', entityType: 'state', title: 'State' },
   { label: 'DISTRICT', entityType: 'district', title: 'District' },
   { label: 'SCHOOL BOARD', entityType: 'school_board', title: 'School Board' },
+  { label: 'CLASS', entityType: 'class', title: 'Class' },
 ];
 
 export default function Entities() {
@@ -157,7 +158,7 @@ export default function Entities() {
               ADD ENTITIES
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Manage States, Districts, and School Boards
+              Manage States, Districts, School Boards, and Classes
             </Typography>
           </Box>
 

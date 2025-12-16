@@ -37,9 +37,7 @@ import {
   Person,
   KeyboardArrowDown,
   ArrowBack,
-  Edit,
   Receipt,
-  CheckCircle,
   Description,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -110,15 +108,6 @@ export default function StudentOrders() {
     },
   });
 
-  // Update status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: 'pending' | 'completed' }) =>
-      studentOrderService.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['studentOrders'] });
-    },
-  });
-
   const resetForm = () => {
     setStudentId('');
     setStudentSearch('');
@@ -132,17 +121,6 @@ export default function StudentOrders() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     resetForm();
-  };
-
-  const handleOpenEdit = (order: StudentOrder) => {
-    setEditingOrder(order);
-    setStudentId(String(order.student_id));
-    setStudentSearch(order.student?.app_code || order.student?.email || '');
-    setActivityId(String(order.activity_id));
-    setAmount(String(order.amount));
-    setPurchasedResponse(order.purchased_response || '');
-    setStatus(order.status);
-    setDialogOpen(true);
   };
 
   const handleSaveOrder = () => {
@@ -176,10 +154,6 @@ export default function StudentOrders() {
     };
 
     updateMutation.mutate({ id: editingOrder.id, data: orderData });
-  };
-
-  const handleMarkCompleted = (orderId: number) => {
-    updateStatusMutation.mutate({ id: orderId, status: 'completed' });
   };
 
   const handleSearch = () => {

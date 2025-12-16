@@ -14,6 +14,7 @@ export interface Student {
   class_id?: string;
   class_name?: string;
   section?: string;
+  district_id?: string;
   email: string;
   phone?: string;
   terms_accepted: boolean;

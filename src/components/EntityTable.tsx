@@ -52,6 +52,9 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
   const [deletingEntity, setDeletingEntity] = useState<Entity | null>(null);
   const [entityName, setEntityName] = useState('');
   const [selectedStateId, setSelectedStateId] = useState<string>('');
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [gradeNumber, setGradeNumber] = useState<string>('');
+  const [displayOrder, setDisplayOrder] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Fetch entities
@@ -67,9 +70,16 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     enabled: entityType === 'district', // Only fetch when on district tab
   });
 
+  // Fetch boards for class dropdown
+  const { data: boards = [] } = useQuery({
+    queryKey: ['entities', 'school_board'],
+    queryFn: () => entityService.getAll('school_board'),
+    enabled: entityType === 'class', // Only fetch when on class tab
+  });
+
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; state_id?: string }) => 
+    mutationFn: (data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number }) => 
       entityService.create(entityType, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
@@ -80,7 +90,7 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: { name: string; state_id?: string } }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number } }) =>
       entityService.update(entityType, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
@@ -122,10 +132,16 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
       setEditingEntity(entity);
       setEntityName(entity.name);
       setSelectedStateId(entity.state_id || '');
+      setSelectedBoardId(entity.board_id || '');
+      setGradeNumber(entity.grade_number?.toString() || '');
+      setDisplayOrder(entity.display_order?.toString() || '');
     } else {
       setEditingEntity(null);
       setEntityName('');
       setSelectedStateId('');
+      setSelectedBoardId('');
+      setGradeNumber('');
+      setDisplayOrder('');
     }
     setDialogOpen(true);
   };
@@ -135,18 +151,40 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     setEditingEntity(null);
     setEntityName('');
     setSelectedStateId('');
+    setSelectedBoardId('');
+    setGradeNumber('');
+    setDisplayOrder('');
   };
 
   const handleSubmit = () => {
     if (!entityName.trim()) return;
 
-    const data: { name: string; state_id?: string } = {
+    const data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number } = {
       name: entityName.trim(),
     };
 
     // Include state_id for districts
     if (entityType === 'district' && selectedStateId) {
       data.state_id = selectedStateId;
+    }
+
+    // Include board_id, grade_number, and display_order for classes
+    if (entityType === 'class') {
+      if (selectedBoardId) {
+        data.board_id = selectedBoardId;
+      }
+      if (gradeNumber.trim()) {
+        const gradeNum = parseInt(gradeNumber.trim(), 10);
+        if (!isNaN(gradeNum)) {
+          data.grade_number = gradeNum;
+        }
+      }
+      if (displayOrder.trim()) {
+        const orderNum = parseInt(displayOrder.trim(), 10);
+        if (!isNaN(orderNum)) {
+          data.display_order = orderNum;
+        }
+      }
     }
 
     if (editingEntity) {
@@ -178,6 +216,13 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     return state?.name || '-';
   };
 
+  // Get board name by ID
+  const getBoardName = (boardId: string | undefined): string => {
+    if (!boardId) return '-';
+    const board = boards.find(b => String(b.id) === boardId);
+    return board?.name || '-';
+  };
+
   // Sort entities
   const sortedEntities = [...entities].sort((a, b) => {
     const comparison = a.name.localeCompare(b.name);
@@ -186,6 +231,8 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
 
   // Check if we need to show state column (for districts)
   const showStateColumn = entityType === 'district';
+  // Check if we need to show board column (for classes)
+  const showBoardColumn = entityType === 'class';
 
   return (
     <Box>
@@ -268,6 +315,15 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
               {showStateColumn && (
                 <TableCell sx={{ fontWeight: 600, color: '#475569' }}>State</TableCell>
               )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Board</TableCell>
+              )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Grade</TableCell>
+              )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Order</TableCell>
+              )}
               <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Status</TableCell>
               <TableCell sx={{ fontWeight: 600, color: '#475569', width: 150 }}>Actions</TableCell>
             </TableRow>
@@ -275,13 +331,13 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={showStateColumn ? 5 : 4} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={(showStateColumn || showBoardColumn) ? (showBoardColumn ? 7 : 5) : 4} align="center" sx={{ py: 4 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : sortedEntities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showStateColumn ? 5 : 4} align="center" sx={{ py: 4, color: '#94a3b8' }}>
+                <TableCell colSpan={(showStateColumn || showBoardColumn) ? (showBoardColumn ? 7 : 5) : 4} align="center" sx={{ py: 4, color: '#94a3b8' }}>
                   No {title.toLowerCase()}s found. Click "Add {title}" to create one.
                 </TableCell>
               </TableRow>
@@ -300,6 +356,15 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
                   <TableCell sx={{ fontWeight: 500 }}>{entity.name}</TableCell>
                   {showStateColumn && (
                     <TableCell>{getStateName(entity.state_id)}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{getBoardName(entity.board_id)}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{entity.grade_number || '-'}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{entity.display_order ?? '-'}</TableCell>
                   )}
                   <TableCell>
                     <Tooltip title={entity.is_active ? 'Active' : 'Inactive'}>
@@ -367,10 +432,38 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
             label="Name"
             value={entityName}
             onChange={(e) => setEntityName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !showStateColumn && handleSubmit()}
+            onKeyDown={(e) => e.key === 'Enter' && !showStateColumn && !showBoardColumn && handleSubmit()}
             placeholder={`Enter ${title.toLowerCase()} name`}
             sx={{ mt: 2 }}
           />
+          
+          {/* Grade Number input for classes */}
+          {showBoardColumn && (
+            <TextField
+              fullWidth
+              label="Grade Number"
+              type="number"
+              value={gradeNumber}
+              onChange={(e) => setGradeNumber(e.target.value)}
+              placeholder="Enter grade number (1-12)"
+              inputProps={{ min: 1, max: 12 }}
+              sx={{ mt: 2 }}
+            />
+          )}
+
+          {/* Display Order input for classes */}
+          {showBoardColumn && (
+            <TextField
+              fullWidth
+              label="Display Order"
+              type="number"
+              value={displayOrder}
+              onChange={(e) => setDisplayOrder(e.target.value)}
+              placeholder="Enter display order (0 or higher)"
+              inputProps={{ min: 0 }}
+              sx={{ mt: 2 }}
+            />
+          )}
           
           {/* State dropdown for districts */}
           {showStateColumn && (
@@ -397,6 +490,32 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
               )}
             </FormControl>
           )}
+
+          {/* Board dropdown for classes */}
+          {showBoardColumn && (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Board</InputLabel>
+              <Select
+                value={selectedBoardId}
+                label="Board"
+                onChange={(e) => setSelectedBoardId(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Select Board</em>
+                </MenuItem>
+                {boards.map((board) => (
+                  <MenuItem key={board.id} value={String(board.id)}>
+                    {board.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {boards.length === 0 && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                  No boards available. Please add boards first.
+                </Typography>
+              )}
+            </FormControl>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseDialog} sx={{ color: '#64748b' }}>
@@ -405,7 +524,13 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!entityName.trim() || createMutation.isPending || updateMutation.isPending}
+            disabled={
+              !entityName.trim() || 
+              (showStateColumn && !selectedStateId) ||
+              (showBoardColumn && !selectedBoardId) ||
+              createMutation.isPending || 
+              updateMutation.isPending
+            }
             sx={{
               bgcolor: '#6366f1',
               '&:hover': { bgcolor: '#4f46e5' },

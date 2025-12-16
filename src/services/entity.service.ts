@@ -4,6 +4,9 @@ export interface Entity {
   id: string | number;
   name: string;
   state_id?: string; // For districts
+  board_id?: string; // For classes
+  grade_number?: number; // For classes
+  display_order?: number; // For classes
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -21,13 +24,14 @@ export interface SingleEntityResponse {
   message?: string;
 }
 
-// Only 3 entity types: State, District, School Board
-export type EntityType = 'state' | 'district' | 'school_board';
+// Entity types: State, District, School Board, Class
+export type EntityType = 'state' | 'district' | 'school_board' | 'class';
 
 export const entityLabels: Record<EntityType, string> = {
   state: 'State',
   district: 'District',
   school_board: 'School Board',
+  class: 'Class',
 };
 
 export const entityService = {
@@ -42,12 +46,12 @@ export const entityService = {
     return response.data.data;
   },
 
-  async create(entityType: EntityType, data: { name: string; state_id?: string }): Promise<Entity> {
+  async create(entityType: EntityType, data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number }): Promise<Entity> {
     const response = await api.post<SingleEntityResponse>(`/entities/${entityType}`, data);
     return response.data.data;
   },
 
-  async update(entityType: EntityType, id: string | number, data: { name?: string; state_id?: string; is_active?: boolean }): Promise<Entity> {
+  async update(entityType: EntityType, id: string | number, data: { name?: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number; is_active?: boolean }): Promise<Entity> {
     const response = await api.put<SingleEntityResponse>(`/entities/${entityType}/${id}`, data);
     return response.data.data;
   },
