@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { CloudUpload, Delete, Image as ImageIcon } from '@mui/icons-material';
 import websiteService from '../services/website.service';
+import { getImageUrl } from '../utils/imageUrl';
 
 interface ImageUploadProps {
   value?: string;
@@ -128,7 +129,7 @@ function ImageUpload({
               height,
               borderRadius: 1,
               overflow: 'hidden',
-              backgroundImage: `url(${value})`,
+              backgroundImage: `url(${getImageUrl(value)})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               border: '1px solid',

@@ -40,6 +40,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
 import websiteService, { HomePageContent } from '../services/website.service';
 import MultiImageUpload from '../components/MultiImageUpload';
+import { getImageUrl } from '../utils/imageUrl';
 
 function WebsiteHome() {
   const navigate = useNavigate();
@@ -175,7 +176,7 @@ function WebsiteHome() {
                                 width: 150,
                                 height: 100,
                                 borderRadius: 1,
-                                backgroundImage: `url(${url})`,
+                                backgroundImage: `url(${getImageUrl(url)})`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 position: 'relative',

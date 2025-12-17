@@ -40,6 +40,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
 import websiteService, { AboutUsPageContent } from '../services/website.service';
 import MultiImageUpload from '../components/MultiImageUpload';
+import { getImageUrl } from '../utils/imageUrl';
 
 function WebsiteAboutUs() {
   const navigate = useNavigate();
@@ -177,7 +178,7 @@ function WebsiteAboutUs() {
                           {item.team_photos.map((url, idx) => (
                             <Avatar
                               key={idx}
-                              src={url}
+                              src={getImageUrl(url)}
                               sx={{ width: 60, height: 60 }}
                             />
                           ))}

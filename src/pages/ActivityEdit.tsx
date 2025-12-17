@@ -41,6 +41,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
 import activityService, { Activity, ActivityTask, DAY_RANGES } from '../services/activity.service';
+import { getImageUrl } from '../utils/imageUrl';
 
 export default function ActivityEdit() {
   const navigate = useNavigate();
@@ -617,7 +618,7 @@ export default function ActivityEdit() {
               {taskPhotoUrl && (
                 <Box sx={{ mt: 2 }}>
                   <img
-                    src={taskPhotoUrl}
+                    src={getImageUrl(taskPhotoUrl)}
                     alt="Preview"
                     style={{ maxWidth: 200, borderRadius: 8 }}
                   />

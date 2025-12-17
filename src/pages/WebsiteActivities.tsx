@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
 import websiteService, { ActivityItem } from '../services/website.service';
 import MultiImageUpload from '../components/MultiImageUpload';
+import { getImageUrl } from '../utils/imageUrl';
 
 function WebsiteActivities() {
   const navigate = useNavigate();
@@ -162,7 +163,7 @@ function WebsiteActivities() {
                             height: 60,
                             flexShrink: 0,
                             borderRadius: 1,
-                            backgroundImage: `url(${url})`,
+                            backgroundImage: `url(${getImageUrl(url)})`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                           }}

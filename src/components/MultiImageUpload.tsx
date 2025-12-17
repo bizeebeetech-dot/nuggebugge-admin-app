@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { Delete, Add } from '@mui/icons-material';
 import websiteService from '../services/website.service';
+import { getImageUrl } from '../utils/imageUrl';
 
 interface MultiImageUploadProps {
   values: string[];
@@ -110,7 +111,7 @@ function MultiImageUpload({
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundImage: `url(${url})`,
+                  backgroundImage: `url(${getImageUrl(url)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}

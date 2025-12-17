@@ -40,6 +40,7 @@ import { activityService } from '../services/activity.service';
 import { submissionService, Submission } from '../services/submission.service';
 import { studentOrderService } from '../services/student-order.service';
 import { taskService } from '../services/submission.service';
+import { getImageUrl } from '../utils/imageUrl';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -997,7 +998,7 @@ export default function AnswerEvaluation() {
                           <CardMedia
                             component="img"
                             height="200"
-                            image={evaluation.photoUrl}
+                            image={getImageUrl(evaluation.photoUrl)}
                             alt={`Day ${evaluation.day} Photo`}
                           />
                           <Box sx={{ p: 2 }}>
