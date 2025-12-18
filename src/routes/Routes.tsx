@@ -18,6 +18,14 @@ import WebsiteHome from '../pages/WebsiteHome';
 import WebsiteActivities from '../pages/WebsiteActivities';
 import WebsiteAboutUs from '../pages/WebsiteAboutUs';
 import WebsiteStatistics from '../pages/WebsiteStatistics';
+import WebsiteObjective from '../pages/WebsiteObjective';
+import WebsiteGovtProjects from '../pages/WebsiteGovtProjects';
+import WebsiteHowToImplement from '../pages/WebsiteHowToImplement';
+import WebsiteUserManual from '../pages/WebsiteUserManual';
+import WebsiteVisionMission from '../pages/WebsiteVisionMission';
+import WebsiteOurTeam from '../pages/WebsiteOurTeam';
+import WebsiteComplaints from '../pages/WebsiteComplaints';
+import WebsiteFeedbackPage from '../pages/WebsiteFeedbackPage';
 import authService from '../services/auth.service';
 
 // Protected route wrapper
@@ -188,6 +196,70 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WebsiteStatistics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/objective"
+        element={
+          <ProtectedRoute>
+            <WebsiteObjective />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/govt-projects"
+        element={
+          <ProtectedRoute>
+            <WebsiteGovtProjects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/how-to-implement"
+        element={
+          <ProtectedRoute>
+            <WebsiteHowToImplement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/user-manual"
+        element={
+          <ProtectedRoute>
+            <WebsiteUserManual />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/vision-mission"
+        element={
+          <ProtectedRoute>
+            <WebsiteVisionMission />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/our-team"
+        element={
+          <ProtectedRoute>
+            <WebsiteOurTeam />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/complaints"
+        element={
+          <ProtectedRoute>
+            <WebsiteComplaints />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/website/feedback-page"
+        element={
+          <ProtectedRoute>
+            <WebsiteFeedbackPage />
           </ProtectedRoute>
         }
       />
