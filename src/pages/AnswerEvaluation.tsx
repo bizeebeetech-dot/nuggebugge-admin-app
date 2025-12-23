@@ -298,47 +298,53 @@ export default function AnswerEvaluation() {
 
   // Initialize photo evaluations
   useEffect(() => {
-    if (activityTasks.length > 0 && !tasksLoading && !submissionsLoading) {
+    if (!submissionsLoading && submissions.length >= 0) {
       // Check if data has actually changed
       const dataChanged = 
-        activityTasks.length !== lastActivityTasksLength.current ||
         submissions.length !== lastSubmissionsLength.current ||
         !photoEvaluationsInitialized.current;
       
       if (dataChanged) {
         const evaluations: PhotoEvaluation[] = [];
         
-        // Find the submission for this activity (one submission per student-activity-task)
-        const activityTask = tasks.find((t) => t.activity_id === parseInt(activityId!));
-        const submission = activityTask 
-          ? submissions.find((s) => s.task_id === activityTask.id && s.student_id === parseInt(studentId!))
-          : undefined;
-        
-        // Parse submission_data to get stored photo evaluations
-        let storedPhotoEvaluations: Record<number, any> = {};
-        if (submission?.submission_data) {
-          try {
-            const submissionData = JSON.parse(submission.submission_data);
-            storedPhotoEvaluations = submissionData.photoEvaluations || {};
-          } catch (e) {
-            // Invalid JSON, ignore
+        // Process all submissions to extract photos
+        submissions.forEach((submission) => {
+          if (!submission.photos || !Array.isArray(submission.photos) || submission.photos.length === 0) {
+            return; // Skip submissions without photos
           }
-        }
-        
-        activityTasks.forEach((task, index) => {
-          if (task.photo_url) {
+          
+          // Find matching activity task for this submission to get day info
+          const matchingActivityTask = activityTasks.find((at) => at.id === submission.task_id);
+          const day = matchingActivityTask?.day || (matchingActivityTask ? activityTasks.indexOf(matchingActivityTask) + 1 : 1);
+          
+          // Parse submission_data to get stored photo evaluations
+          let storedPhotoEvaluations: Record<string, any> = {};
+          if (submission.submission_data) {
+            try {
+              const submissionData = JSON.parse(submission.submission_data);
+              storedPhotoEvaluations = submissionData.photoEvaluations || {};
+            } catch (e) {
+              // Invalid JSON, ignore
+            }
+          }
+          
+          // Process each photo in the submission
+          submission.photos.forEach((photoUrl: string, photoIndex: number) => {
+            // Use photo URL as key for stored evaluations
+            const photoKey = `${submission.task_id}-${photoIndex}`;
+            
             // Preserve existing state if we've already initialized
             const existingEval = photoEvaluationsInitialized.current
-              ? photoEvaluations.find(e => e.taskId === task.id)
+              ? photoEvaluations.find(e => e.photoUrl === photoUrl && e.submissionId === submission.id)
               : null;
             
-            // Get stored photo evaluation for this activity task
-            const storedEval = storedPhotoEvaluations[task.id];
+            // Get stored photo evaluation for this photo
+            const storedEval = storedPhotoEvaluations[photoKey] || storedPhotoEvaluations[photoUrl];
             
             evaluations.push({
-              taskId: task.id,
-              day: index + 1,
-              photoUrl: task.photo_url,
+              taskId: submission.task_id,
+              day: day,
+              photoUrl: photoUrl,
               // Use existing state if available, otherwise use stored evaluation
               accept: existingEval?.accept !== undefined && existingEval?.accept !== null
                 ? existingEval.accept
@@ -351,17 +357,24 @@ export default function AnswerEvaluation() {
                   ? storedEval.reject
                   : false),
               reason: existingEval?.reason || storedEval?.reason || '',
-              submissionId: submission?.id,
+              submissionId: submission.id,
             });
-          }
+          });
         });
+        
+        // Sort by day, then by taskId
+        evaluations.sort((a, b) => {
+          if (a.day !== b.day) return a.day - b.day;
+          return a.taskId - b.taskId;
+        });
+        
         setPhotoEvaluations(evaluations);
         photoEvaluationsInitialized.current = true;
         lastSubmissionsLength.current = submissions.length;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityTasks.length, tasks.length, submissions.length, tasksLoading, submissionsLoading]);
+  }, [submissions.length, submissionsLoading, activityTasks.length]);
 
   // Function to check if all questions and photos are evaluated for this student-activity combination
   const checkAllEvaluationsComplete = async (): Promise<{ complete: boolean; message: string; submissionId?: number }> => {
@@ -645,136 +658,104 @@ export default function AnswerEvaluation() {
   const updatePhotoEvaluationMutation = useMutation({
     mutationFn: async (data: { photoEvaluations: PhotoEvaluation[] }) => {
       console.log('Photo mutation called with data:', data);
-      console.log('Available tasks:', tasks);
-      console.log('Activity ID:', activityId);
       const results = [];
       
-      // Find or create a task for this activity
-      let task = tasks.find((t) => t.activity_id === parseInt(activityId!));
+      // Group photo evaluations by submissionId
+      const evaluationsBySubmission = new Map<number, PhotoEvaluation[]>();
       
-      // If no task exists, create one
-      if (!task && activityId) {
-        try {
-          console.log(`Creating new task for activity ${activityId}`);
-          task = await taskService.create({
-            activity_id: parseInt(activityId!),
-            task_number: 'task_1',
-            title: 'Evaluation Task',
-            description: 'Task for student evaluation',
-          });
-          console.log('Created task:', task);
-        } catch (error: any) {
-          console.error('Error creating task:', error);
-          // If creation fails, try to get tasks again
-          const allTasks = await taskService.getAll(parseInt(activityId!));
-          task = allTasks.find((t) => t.activity_id === parseInt(activityId!));
-          if (!task && allTasks.length > 0) {
-            task = allTasks[0]; // Use first available task
-          }
-        }
-      }
-      
-      if (!task) {
-        throw new Error('Unable to find or create a task for this activity. Please ensure the activity has at least one task.');
-      }
-      
-      console.log(`Using task ${task.id} for photo evaluations`);
-      
-      // Create or find one submission for all photo evaluations (one submission per student-activity-task)
-      let submission = submissions.find((s) => 
-        s.task_id === task.id && s.student_id === parseInt(studentId!)
-      );
-      
-      // If not found, create one
-      if (!submission) {
-        try {
-          console.log(`Creating new submission for student ${studentId}, task ${task.id}`);
-          submission = await submissionService.create({
-            student_id: parseInt(studentId!),
-            task_id: task.id,
-            submission_data: JSON.stringify({ 
-              activityId: parseInt(activityId!),
-              photoEvaluations: {}
-            }),
-          });
-          console.log('Created submission:', submission);
-        } catch (error: any) {
-          // If creation fails because it already exists, fetch it
-          if (error?.response?.status === 400) {
-            const taskSubmissions = await submissionService.getByTask(task.id);
-            submission = taskSubmissions.find((s) => s.student_id === parseInt(studentId!));
-            if (!submission) {
-              throw new Error('Failed to create or find submission');
-            }
-          } else {
-            throw error;
-          }
-        }
-      }
-      
-      // Store all photo evaluations in submission_data
-      const submissionData = submission.submission_data ? JSON.parse(submission.submission_data) : { photoEvaluations: {} };
-      if (!submissionData.photoEvaluations) {
-        submissionData.photoEvaluations = {};
-      }
-      
-      // Store all photo evaluations
       for (const photoEval of data.photoEvaluations) {
-        console.log(`Processing photo evaluation for activity task ${photoEval.taskId}, day ${photoEval.day}`);
+        if (!photoEval.submissionId) {
+          console.warn(`Photo evaluation missing submissionId:`, photoEval);
+          continue;
+        }
         
-        // Store photo evaluation data
-        submissionData.photoEvaluations[photoEval.taskId] = {
-          day: photoEval.day,
-          photoUrl: photoEval.photoUrl,
-          accept: photoEval.accept,
-          reject: photoEval.reject,
-          reason: photoEval.reason,
-        };
+        if (!evaluationsBySubmission.has(photoEval.submissionId)) {
+          evaluationsBySubmission.set(photoEval.submissionId, []);
+        }
+        evaluationsBySubmission.get(photoEval.submissionId)!.push(photoEval);
       }
       
-      // Determine overall status and remarks
-      // Only mark as evaluated/rejected if ALL photos have been explicitly evaluated (accept === true OR reject === true)
-      const allEvaluated = data.photoEvaluations.every(e => e.accept === true || e.reject === true);
-      const hasAccepted = data.photoEvaluations.some(e => e.accept === true);
-      const hasRejected = data.photoEvaluations.some(e => e.reject === true);
-      // Only change status if all photos are evaluated, otherwise keep as submitted_for_evaluation
-      const overallStatus = allEvaluated 
-        ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
-        : 'submitted_for_evaluation';
-      
-      const allReasons = data.photoEvaluations
-        .filter(e => e.reject && e.reason)
-        .map(e => `Day ${e.day}: ${e.reason}`)
-        .join('; ');
-      
-      // Update the submission with all photo evaluations
-      try {
-        console.log(`Calling API: PATCH /submissions/${submission.id}/evaluate with status: ${overallStatus}`);
+      // Process each submission's photo evaluations
+      for (const [submissionId, photoEvals] of evaluationsBySubmission.entries()) {
+        // Get the submission
+        let submission = submissions.find((s) => s.id === submissionId);
         
-        // First update evaluation status
-        const result = await submissionService.evaluate(submission.id, {
-          evaluation_status: overallStatus as any,
-          remarks: allReasons || undefined,
-        });
+        if (!submission) {
+          // Try to fetch it
+          try {
+            submission = await submissionService.getById(submissionId);
+          } catch (error: any) {
+            console.error(`Error fetching submission ${submissionId}:`, error);
+            throw new Error(`Submission ${submissionId} not found`);
+          }
+        }
         
-        // Then update submission_data with all photo evaluations
-        await submissionService.update(submission.id, {
-          submission_data: JSON.stringify(submissionData),
-        });
+        // Store all photo evaluations in submission_data
+        const submissionData = submission.submission_data ? JSON.parse(submission.submission_data) : { photoEvaluations: {} };
+        if (!submissionData.photoEvaluations) {
+          submissionData.photoEvaluations = {};
+        }
         
-        console.log(`Successfully evaluated submission ${submission.id}:`, result);
+        // Store photo evaluations by photo URL (since photos come from submission.photos array)
+        for (const photoEval of photoEvals) {
+          console.log(`Processing photo evaluation for submission ${submissionId}, photo ${photoEval.photoUrl}`);
+          
+          // Use photo URL as key for stored evaluations
+          const photoKey = photoEval.photoUrl;
+          
+          submissionData.photoEvaluations[photoKey] = {
+            day: photoEval.day,
+            photoUrl: photoEval.photoUrl,
+            taskId: photoEval.taskId,
+            accept: photoEval.accept,
+            reject: photoEval.reject,
+            reason: photoEval.reason,
+          };
+        }
         
-        // Update all photo evaluations with the submissionId
-        const updatedEvals = data.photoEvaluations.map(e => ({ ...e, submissionId: submission.id }));
-        results.push(...updatedEvals);
-      } catch (error: any) {
-        console.error(`Error evaluating submission ${submission.id}:`, error);
-        console.error('Error details:', {
-          message: error?.message,
-          response: error?.response?.data,
-          status: error?.response?.status,
-        });
-        throw error;
+        // Determine overall status and remarks for this submission
+        // Only mark as evaluated/rejected if ALL photos have been explicitly evaluated
+        const allEvaluated = photoEvals.every(e => e.accept === true || e.reject === true);
+        const hasAccepted = photoEvals.some(e => e.accept === true);
+        const hasRejected = photoEvals.some(e => e.reject === true);
+        const overallStatus = allEvaluated 
+          ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
+          : 'submitted_for_evaluation';
+        
+        const allReasons = photoEvals
+          .filter(e => e.reject && e.reason)
+          .map(e => `Day ${e.day}: ${e.reason}`)
+          .join('; ');
+        
+        // Update the submission with photo evaluations
+        try {
+          console.log(`Calling API: PATCH /submissions/${submission.id}/evaluate with status: ${overallStatus}`);
+          
+          // First update evaluation status
+          const result = await submissionService.evaluate(submission.id, {
+            evaluation_status: overallStatus as any,
+            remarks: allReasons || undefined,
+          });
+          
+          // Then update submission_data with photo evaluations
+          await submissionService.update(submission.id, {
+            submission_data: JSON.stringify(submissionData),
+          });
+          
+          console.log(`Successfully evaluated submission ${submission.id}:`, result);
+          
+          // Update photo evaluations with the submissionId
+          const updatedEvals = photoEvals.map(e => ({ ...e, submissionId: submission.id }));
+          results.push(...updatedEvals);
+        } catch (error: any) {
+          console.error(`Error evaluating submission ${submission.id}:`, error);
+          console.error('Error details:', {
+            message: error?.message,
+            response: error?.response?.data,
+            status: error?.response?.status,
+          });
+          throw error;
+        }
       }
       
       console.log(`Successfully processed ${results.length} photo evaluations`);

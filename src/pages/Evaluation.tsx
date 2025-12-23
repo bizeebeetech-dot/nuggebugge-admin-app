@@ -246,7 +246,7 @@ export default function Evaluation() {
         (item.student.name && item.student.name.toLowerCase().includes(searchLower)) ||
         (item.student.app_code && item.student.app_code.toLowerCase().includes(searchLower)) ||
         (item.student.school_name && item.student.school_name.toLowerCase().includes(searchLower)) ||
-        (item.submission.activity?.name && item.submission.activity.name.toLowerCase().includes(searchLower))
+        ((item.submission.activity?.title || item.submission.activity?.name) && (item.submission.activity?.title || item.submission.activity?.name || '').toLowerCase().includes(searchLower))
     );
   };
 
@@ -489,7 +489,7 @@ export default function Evaluation() {
                         </TableCell>
                         <TableCell>{item.student.school_name || 'N/A'}</TableCell>
                         <TableCell>
-                          {item.submission.activity?.name || 'N/A'}
+                          {item.submission.activity?.title || item.submission.activity?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -602,7 +602,7 @@ export default function Evaluation() {
                         </TableCell>
                         <TableCell>{item.student.school_name || 'N/A'}</TableCell>
                         <TableCell>
-                          {item.submission.activity?.name || 'N/A'}
+                          {item.submission.activity?.title || item.submission.activity?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button

@@ -16,13 +16,15 @@ export interface Student {
 
 export interface Activity {
   id: number;
-  name: string;
-  activity_type: string;
-  points: number;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  name?: string;
+  title?: string;
+  activity_type?: string;
+  points?: number;
+  description?: string;
+  summary?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Task {
@@ -64,6 +66,8 @@ export interface Submission {
   remarks: string | null;
   submission_data: string | null;
   answers?: Answer[];
+  photos?: string[];
+  photo_metadata?: Array<{ time: string; latitude: number; longitude: number }>;
   created_at: string;
   updated_at: string;
 }
