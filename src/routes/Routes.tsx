@@ -24,8 +24,10 @@ import WebsiteHowToImplement from '../pages/WebsiteHowToImplement';
 import WebsiteUserManual from '../pages/WebsiteUserManual';
 import WebsiteVisionMission from '../pages/WebsiteVisionMission';
 import WebsiteOurTeam from '../pages/WebsiteOurTeam';
-import WebsiteComplaints from '../pages/WebsiteComplaints';
-import WebsiteFeedbackPage from '../pages/WebsiteFeedbackPage';
+import ComplaintSubmissions from '../pages/ComplaintSubmissions';
+import Feedbacks from '../pages/Feedbacks';
+import WebsiteSocialSitesLink from '../pages/WebsiteSocialSitesLink';
+import WebsiteContactUs from '../pages/WebsiteContactUs';
 import authService from '../services/auth.service';
 
 // Protected route wrapper
@@ -112,7 +114,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/evaluation/:studentId/:activityId/answer"
+        path="/evaluation/student/:studentId/activity/:activityId/answer"
         element={
           <ProtectedRoute>
             <AnswerEvaluation />
@@ -248,18 +250,34 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/website/complaints"
+        path="/website/social-sites-links"
         element={
           <ProtectedRoute>
-            <WebsiteComplaints />
+            <WebsiteSocialSitesLink />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/website/feedback-page"
+        path="/website/contact-us"
         element={
           <ProtectedRoute>
-            <WebsiteFeedbackPage />
+            <WebsiteContactUs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/complaint-submissions"
+        element={
+          <ProtectedRoute>
+            <ComplaintSubmissions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedbacks"
+        element={
+          <ProtectedRoute>
+            <Feedbacks />
           </ProtectedRoute>
         }
       />

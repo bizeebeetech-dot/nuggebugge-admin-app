@@ -148,7 +148,9 @@ export default function StudentProfileDetail() {
         school_id: student.school_id || '',
         class_id: student.class_id || '',
         section: student.section || '',
+        roll_number: student.roll_number || '',
         district_id: student.district_id || '',
+        device_type: student.device_type || '',
         phone: student.phone || '',
       });
     }
@@ -181,7 +183,9 @@ export default function StudentProfileDetail() {
         school_id: student.school_id || '',
         class_id: student.class_id || '',
         section: student.section || '',
+        roll_number: student.roll_number || '',
         district_id: student.district_id || '',
+        device_type: student.device_type || '',
         phone: student.phone || '',
       });
     }
@@ -448,6 +452,9 @@ export default function StudentProfileDetail() {
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   disabled={!isEditing}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -469,6 +476,9 @@ export default function StudentProfileDetail() {
                   }}
                   disabled={!isEditing}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -490,6 +500,9 @@ export default function StudentProfileDetail() {
                   onChange={(e) => setFormData({ ...formData, district_id: e.target.value })}
                   disabled={!isEditing || !formData.state_id}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -513,6 +526,9 @@ export default function StudentProfileDetail() {
                   }}
                   disabled={!isEditing}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -534,6 +550,9 @@ export default function StudentProfileDetail() {
                   onChange={(e) => setFormData({ ...formData, school_id: e.target.value })}
                   disabled={!isEditing || !formData.state_id || !formData.board_id}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -555,6 +574,9 @@ export default function StudentProfileDetail() {
                   onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
                   disabled={!isEditing || !formData.board_id}
                   variant="outlined"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                   SelectProps={{
                     native: true,
                   }}
@@ -575,6 +597,27 @@ export default function StudentProfileDetail() {
                   onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                   disabled={!isEditing}
                   variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Roll Number"
+                  value={formData.roll_number || ''}
+                  onChange={(e) => setFormData({ ...formData, roll_number: e.target.value })}
+                  disabled={!isEditing}
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Device Type"
+                  value={formData.device_type || ''}
+                  onChange={(e) => setFormData({ ...formData, device_type: e.target.value })}
+                  disabled={!isEditing}
+                  variant="outlined"
+                  helperText="e.g., android, ios, web"
                 />
               </Grid>
               <Grid item xs={12} md={6}>

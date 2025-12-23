@@ -7,13 +7,11 @@
     "skipLibCheck": true,
     "types": ["vite/client"],
 
-    "composite": true,
-
     /* Bundler mode */
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
+    "noEmit": true,
     "jsx": "react-jsx",
 
     /* Linting */
@@ -22,6 +20,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "**/*.d.ts",
+    "node_modules",
+    "dist"
+  ]
 }
 

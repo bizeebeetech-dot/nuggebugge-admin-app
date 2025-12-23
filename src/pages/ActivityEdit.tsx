@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -53,6 +53,7 @@ export default function ActivityEdit() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<number | ''>('');
   const [uploading, setUploading] = useState(false);
 
   // Activity form state
@@ -62,6 +63,7 @@ export default function ActivityEdit() {
 
   // Task form state
   const [taskDayRange, setTaskDayRange] = useState('');
+  const [taskDay, setTaskDay] = useState<number | ''>('');
   const [taskTitle, setTaskTitle] = useState('');
   const [taskInstruction, setTaskInstruction] = useState('');
   const [taskVideoManual, setTaskVideoManual] = useState('');
@@ -86,12 +88,22 @@ export default function ActivityEdit() {
     enabled: !!activityId,
   });
 
-  // Fetch tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  // Fetch all tasks (without day filter) to show all tabs
+  const { data: allTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['activityTasks', activityId],
     queryFn: () => activityService.getTasks(activityId),
     enabled: !!activityId,
   });
+
+  // Fetch filtered tasks when a day is selected
+  const { data: filteredTasks = [] } = useQuery({
+    queryKey: ['activityTasks', activityId, selectedDay],
+    queryFn: () => activityService.getTasks(activityId, selectedDay !== '' ? selectedDay : undefined),
+    enabled: !!activityId && selectedDay !== '',
+  });
+
+  // Use filtered tasks if day is selected, otherwise use all tasks
+  const tasks = selectedDay !== '' ? filteredTasks : allTasks;
 
   // Update activity mutation
   const updateActivityMutation = useMutation({
@@ -133,6 +145,7 @@ export default function ActivityEdit() {
 
   const resetTaskForm = () => {
     setTaskDayRange('');
+    setTaskDay('');
     setTaskTitle('');
     setTaskInstruction('');
     setTaskVideoManual('');
@@ -167,6 +180,7 @@ export default function ActivityEdit() {
     if (task) {
       setEditingTaskId(task.id);
       setTaskDayRange(task.day_range);
+      setTaskDay(task.day || '');
       setTaskTitle(task.title);
       setTaskInstruction(task.instruction || '');
       setTaskVideoManual(task.video_manual || '');
@@ -182,6 +196,7 @@ export default function ActivityEdit() {
   const handleSaveTask = () => {
     const taskData = {
       day_range: taskDayRange,
+      day: taskDay !== '' ? taskDay : undefined,
       title: taskTitle,
       instruction: taskInstruction,
       video_manual: taskVideoManual,
@@ -224,13 +239,50 @@ export default function ActivityEdit() {
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
 
-  // Group tasks by day range for tabs
+  // Helper function to get days for a day range
+  const getDaysForRange = (dayRange: string): number[] => {
+    const match = dayRange.match(/(\d+)-(\d+)/);
+    if (match) {
+      const start = parseInt(match[1], 10);
+      const end = parseInt(match[2], 10);
+      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    }
+    return [];
+  };
+
+  // Group ALL tasks by day range for tabs (use allTasks to keep tabs visible)
   const tasksByDayRange = DAY_RANGES.reduce((acc, dayRange) => {
-    acc[dayRange] = tasks.filter((t) => t.day_range === dayRange);
+    acc[dayRange] = allTasks.filter((t) => t.day_range === dayRange);
     return acc;
   }, {} as Record<string, ActivityTask[]>);
 
+  // Show all tabs that have tasks (regardless of day filter)
   const tabsWithTasks = DAY_RANGES.filter((dr) => tasksByDayRange[dr]?.length > 0);
+  
+  // Get current day range and available days
+  const currentDayRange = tabsWithTasks[selectedTab];
+  const availableDays = currentDayRange ? getDaysForRange(currentDayRange) : [];
+
+  // Initialize selectedDay to first day when tasks are first loaded
+  useEffect(() => {
+    if (allTasks.length > 0 && selectedDay === '' && tabsWithTasks.length > 0) {
+      const firstDayRange = tabsWithTasks[0];
+      const firstDays = getDaysForRange(firstDayRange);
+      if (firstDays.length > 0) {
+        setSelectedDay(firstDays[0]);
+      }
+    }
+  }, [allTasks.length, tabsWithTasks.length]);
+
+  // Set default day to first day when tab changes
+  useEffect(() => {
+    if (currentDayRange && availableDays.length > 0) {
+      // If selected day is not in available days for current tab, set to first day of current tab
+      if (selectedDay === '' || !availableDays.includes(selectedDay as number)) {
+        setSelectedDay(availableDays[0]);
+      }
+    }
+  }, [selectedTab, currentDayRange]);
 
   if (activityLoading) {
     return (
@@ -252,20 +304,23 @@ export default function ActivityEdit() {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/')}
-          >
-            nuggebugge
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => navigate('/activities')} sx={{ color: '#fff' }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Activity: {title || 'Edit Activity'}
+            </Typography>
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -430,7 +485,7 @@ export default function ActivityEdit() {
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <CircularProgress />
             </Box>
-          ) : tasks.length === 0 ? (
+          ) : allTasks.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: '#94a3b8' }}>
               No tasks added yet. Click "Add Task" to create one.
             </Box>
@@ -439,7 +494,17 @@ export default function ActivityEdit() {
               {/* Tabs for Day Ranges */}
               <Tabs
                 value={selectedTab}
-                onChange={(_, newValue) => setSelectedTab(newValue)}
+                onChange={(_, newValue) => {
+                  setSelectedTab(newValue);
+                  // Set to first day of new range when tab changes
+                  const newDayRange = tabsWithTasks[newValue];
+                  if (newDayRange) {
+                    const newDays = getDaysForRange(newDayRange);
+                    if (newDays.length > 0) {
+                      setSelectedDay(newDays[0]);
+                    }
+                  }
+                }}
                 variant="scrollable"
                 scrollButtons="auto"
                 sx={{
@@ -458,11 +523,42 @@ export default function ActivityEdit() {
                 ))}
               </Tabs>
 
+              {/* Day Dropdown - Always show when a tab is selected */}
+              {tabsWithTasks.length > 0 && selectedTab < tabsWithTasks.length && availableDays.length > 0 && (
+                <Box sx={{ p: 2, borderBottom: '1px solid #e5e7eb', bgcolor: '#f9fafb' }}>
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel>Select Day</InputLabel>
+                    <Select
+                      value={selectedDay || availableDays[0]}
+                      label="Select Day"
+                      onChange={(e) => setSelectedDay(Number(e.target.value))}
+                    >
+                      {availableDays.map((day) => (
+                        <MenuItem key={day} value={day}>
+                          Day {day}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              )}
+
               {/* Task Cards */}
               <Box sx={{ p: 3 }}>
                 {tabsWithTasks[selectedTab] && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {tasksByDayRange[tabsWithTasks[selectedTab]].map((task) => (
+                    {tasks
+                      .filter((task) => {
+                        // Only show tasks from the current day range tab
+                        return task.day_range === tabsWithTasks[selectedTab];
+                      })
+                      .length > 0 ? (
+                      tasks
+                        .filter((task) => {
+                          // Only show tasks from the current day range tab
+                          return task.day_range === tabsWithTasks[selectedTab];
+                        })
+                        .map((task) => (
                       <Card key={task.id} variant="outlined">
                         <CardContent>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -527,7 +623,12 @@ export default function ActivityEdit() {
                           </Box>
                         </CardContent>
                       </Card>
-                    ))}
+                    ))
+                    ) : (
+                      <Box sx={{ p: 4, textAlign: 'center', color: '#94a3b8' }}>
+                        No tasks found for Day {selectedDay}. Tasks can be added for this day.
+                      </Box>
+                    )}
                   </Box>
                 )}
               </Box>
@@ -548,7 +649,10 @@ export default function ActivityEdit() {
               <Select
                 value={taskDayRange}
                 label="Day Range"
-                onChange={(e) => setTaskDayRange(e.target.value)}
+                onChange={(e) => {
+                  setTaskDayRange(e.target.value);
+                  setTaskDay(''); // Reset day when range changes
+                }}
               >
                 {DAY_RANGES.map((range) => (
                   <MenuItem key={range} value={range}>
@@ -557,6 +661,26 @@ export default function ActivityEdit() {
                 ))}
               </Select>
             </FormControl>
+
+            {taskDayRange && (
+              <FormControl fullWidth>
+                <InputLabel>Day</InputLabel>
+                <Select
+                  value={taskDay}
+                  label="Day"
+                  onChange={(e) => setTaskDay(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <MenuItem value="">
+                    <em>No specific day</em>
+                  </MenuItem>
+                  {getDaysForRange(taskDayRange).map((day) => (
+                    <MenuItem key={day} value={day}>
+                      Day {day}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
 
             <TextField
               fullWidth

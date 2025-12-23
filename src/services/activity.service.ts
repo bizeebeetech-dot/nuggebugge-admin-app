@@ -19,6 +19,7 @@ export interface ActivityTask {
   id: number;
   activity_id: number;
   day_range: string;
+  day?: number;
   title: string;
   instruction: string;
   video_manual: string;
@@ -68,8 +69,9 @@ class ActivityService {
   }
 
   // Activity Tasks
-  async getTasks(activityId: number): Promise<ActivityTask[]> {
-    const response = await api.get(`/activities/${activityId}/tasks`);
+  async getTasks(activityId: number, day?: number): Promise<ActivityTask[]> {
+    const params = day !== undefined ? { day } : {};
+    const response = await api.get(`/activities/${activityId}/tasks`, { params });
     return response.data.data;
   }
 

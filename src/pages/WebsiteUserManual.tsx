@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -24,6 +24,7 @@ import {
   Snackbar,
   CircularProgress,
   Chip,
+  Link,
 } from '@mui/material';
 import {
   Logout,
@@ -34,6 +35,7 @@ import {
   Delete,
   ArrowBack,
   MenuBook,
+  Upload,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -50,6 +52,8 @@ function WebsiteUserManual() {
   const [items, setItems] = useState<UserManual[]>([]);
   const [contentDialog, setContentDialog] = useState(false);
   const [editingContent, setEditingContent] = useState<Partial<UserManual> | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -70,8 +74,8 @@ function WebsiteUserManual() {
   };
 
   const handleSaveContent = async () => {
-    if (!editingContent || !editingContent.description) {
-      showSnackbar('Description is required', 'error');
+    if (!editingContent) {
+      showSnackbar('Please fill in the required fields', 'error');
       return;
     }
     try {
@@ -86,6 +90,32 @@ function WebsiteUserManual() {
       loadData();
     } catch {
       showSnackbar('Failed to save content', 'error');
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (50 MB limit for documents)
+    if (file.size > 50 * 1024 * 1024) {
+      showSnackbar('File size must be less than 50 MB', 'error');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const response = await websiteService.uploadDocument(file);
+      setEditingContent({ ...editingContent, text_tutorial_file: response.url });
+      showSnackbar('File uploaded successfully', 'success');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      showSnackbar('Failed to upload file', 'error');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -139,26 +169,38 @@ function WebsiteUserManual() {
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h5">User Manual</Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ description: '', display_order: items.length }); setContentDialog(true); }}>Add User Manual</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ title: '', text_tutorial_file: '', video_tutorial_url: '', display_order: items.length }); setContentDialog(true); }}>Add User Manual</Button>
           </Box>
-          <Alert severity="info" sx={{ mb: 2 }}>Add user manual description. Supports alphanumeric, special characters, and hyperlinks.</Alert>
+          <Alert severity="info" sx={{ mb: 2 }}>No limit on number of User Manuals</Alert>
           
           {items.map((content) => (
             <Card key={content.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ 
-                      display: '-webkit-box', 
-                      WebkitLineClamp: 3, 
-                      WebkitBoxOrient: 'vertical', 
-                      overflow: 'hidden',
-                      bgcolor: '#f5f5f5',
-                      p: 2,
-                      borderRadius: 1
-                    }}>
-                      {content.description?.replace(/<[^>]*>/g, '') || 'No content'}
+                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                      {content.title || 'Untitled'}
                     </Typography>
+                    {content.text_tutorial_file && (
+                      <Box sx={{ mb: 1 }}>
+                        <Chip 
+                          label="Text Tutorial File" 
+                          size="small" 
+                          color="primary"
+                          component="a"
+                          href={content.text_tutorial_file}
+                          target="_blank"
+                          clickable
+                        />
+                      </Box>
+                    )}
+                    {content.video_tutorial_url && (
+                      <Box sx={{ mb: 1 }}>
+                        <Link href={content.video_tutorial_url} target="_blank" sx={{ fontSize: '0.875rem' }}>
+                          Click here to view the existing video tutorial
+                        </Link>
+                      </Box>
+                    )}
                     <Box sx={{ mt: 1 }}><Chip label={content.is_active ? 'Active' : 'Inactive'} color={content.is_active ? 'success' : 'default'} size="small" /></Box>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
@@ -183,15 +225,73 @@ function WebsiteUserManual() {
         <DialogContent>
           <TextField 
             fullWidth 
-            label="Description *" 
-            value={editingContent?.description || ''} 
-            onChange={(e) => setEditingContent({ ...editingContent, description: e.target.value })} 
-            margin="normal" 
-            multiline 
-            rows={8}
-            required
-            helperText="Use <a href='url'>link text</a> for hyperlinks"
+            label="Title" 
+            value={editingContent?.title || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, title: e.target.value })} 
+            margin="normal"
+            placeholder="Summary/Synopsis/Objective of the Activity"
           />
+          
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Text Tutorial File:</Typography>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Upload />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? 'Uploading...' : 'Choose file'}
+              </Button>
+              {editingContent?.text_tutorial_file && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    File: {editingContent.text_tutorial_file.split('/').pop()}
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => window.open(editingContent?.text_tutorial_file, '_blank')}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => setEditingContent({ ...editingContent, text_tutorial_file: '' })}
+                  >
+                    Remove
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          <TextField 
+            fullWidth 
+            label="Video Tutorial URL" 
+            value={editingContent?.video_tutorial_url || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, video_tutorial_url: e.target.value })} 
+            margin="normal"
+            placeholder="https://youtu.be/..."
+          />
+          {editingContent?.video_tutorial_url && (
+            <Box sx={{ mt: 1 }}>
+              <Link 
+                href={editingContent.video_tutorial_url} 
+                target="_blank" 
+                sx={{ fontSize: '0.875rem' }}
+              >
+                Click here to view the existing video tutorial
+              </Link>
+            </Box>
+          )}
+
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}>
               <TextField 
@@ -199,7 +299,7 @@ function WebsiteUserManual() {
                 label="Display Order" 
                 type="number" 
                 value={editingContent?.display_order || 0} 
-                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) })} 
+                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) || 0 })} 
               />
             </Grid>
             <Grid item xs={6}>

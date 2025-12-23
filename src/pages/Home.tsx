@@ -12,7 +12,7 @@ import {
   CardContent,
   Grid,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School, PersonSearch, Receipt, FitnessCenter, Assignment, Flag, Business, Build, MenuBook, Visibility, Group, Report, Feedback } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School, PersonSearch, Receipt, FitnessCenter, Assignment, Flag, Business, Build, MenuBook, Visibility, Group, Report, Feedback, Share, ContactMail } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -849,7 +849,7 @@ function Home() {
             </Card>
           </Grid>
 
-          {/* Complaints */}
+          {/* Social Sites Links */}
           <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
@@ -860,7 +860,7 @@ function Home() {
                   boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
                 },
               }}
-              onClick={() => navigate('/website/complaints')}
+              onClick={() => navigate('/website/social-sites-links')}
             >
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -869,7 +869,91 @@ function Home() {
                       width: 48,
                       height: 48,
                       borderRadius: 2,
-                      bgcolor: '#ef4444',
+                      bgcolor: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Share sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Social Sites Links
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage YouTube, Instagram, Facebook & WhatsApp links
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Contact Us */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/contact-us')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ContactMail sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Contact Us
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage address, email & WhatsApp number
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* User Submissions Section */}
+        <Typography variant="h5" component="h2" sx={{ color: '#1a1a2e', mt: 4, mb: 2 }}>
+          User Submissions
+        </Typography>
+        <Grid container spacing={3}>
+          {/* Complaint Submissions */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/complaint-submissions')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f59e0b',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -878,18 +962,18 @@ function Home() {
                     <Report sx={{ color: '#fff', fontSize: 24 }} />
                   </Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Complaints
+                    Complaint Submissions
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Manage complaints with title & description
+                  View & manage user-submitted complaints
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Feedback Page */}
-          <Grid item xs={12} sm={6} md={3}>
+          {/* Feedbacks */}
+          <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
                 cursor: 'pointer',
@@ -899,7 +983,7 @@ function Home() {
                   boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
                 },
               }}
-              onClick={() => navigate('/website/feedback-page')}
+              onClick={() => navigate('/feedbacks')}
             >
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -908,7 +992,7 @@ function Home() {
                       width: 48,
                       height: 48,
                       borderRadius: 2,
-                      bgcolor: '#06b6d4',
+                      bgcolor: '#3b82f6',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -917,11 +1001,11 @@ function Home() {
                     <Feedback sx={{ color: '#fff', fontSize: 24 }} />
                   </Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Feedback Page
+                    User Feedbacks
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Manage feedback page descriptions
+                  View & manage user-submitted feedbacks with ratings
                 </Typography>
               </CardContent>
             </Card>

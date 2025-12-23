@@ -33,13 +33,16 @@ import {
   Edit,
   Delete,
   ArrowBack,
-  Feedback,
+  ContactMail,
+  Email,
+  Phone,
+  LocationOn,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
-import websiteService, { FeedbackPage } from '../services/website.service';
+import websiteService, { ContactUs } from '../services/website.service';
 
-function WebsiteFeedbackPage() {
+function WebsiteContactUs() {
   const navigate = useNavigate();
   const user = authService.getUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -47,9 +50,9 @@ function WebsiteFeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  const [items, setItems] = useState<FeedbackPage[]>([]);
+  const [items, setItems] = useState<ContactUs[]>([]);
   const [contentDialog, setContentDialog] = useState(false);
-  const [editingContent, setEditingContent] = useState<Partial<FeedbackPage> | null>(null);
+  const [editingContent, setEditingContent] = useState<Partial<ContactUs> | null>(null);
 
   useEffect(() => {
     loadData();
@@ -57,7 +60,7 @@ function WebsiteFeedbackPage() {
 
   const loadData = async () => {
     try {
-      const content = await websiteService.getFeedbackPage();
+      const content = await websiteService.getContactUs();
       setItems(content);
     } catch {
       showSnackbar('Failed to load data', 'error');
@@ -70,15 +73,15 @@ function WebsiteFeedbackPage() {
   };
 
   const handleSaveContent = async () => {
-    if (!editingContent || !editingContent.description) {
-      showSnackbar('Description is required', 'error');
+    if (!editingContent) {
+      showSnackbar('Please fill in the required fields', 'error');
       return;
     }
     try {
       if (editingContent.id) {
-        await websiteService.updateFeedbackPage(editingContent.id, editingContent);
+        await websiteService.updateContactUs(editingContent.id, editingContent);
       } else {
-        await websiteService.createFeedbackPage(editingContent);
+        await websiteService.createContactUs(editingContent);
       }
       showSnackbar('Content saved successfully', 'success');
       setContentDialog(false);
@@ -90,9 +93,9 @@ function WebsiteFeedbackPage() {
   };
 
   const handleDeleteContent = async (id: string) => {
-    if (!confirm('Delete this content?')) return;
+    if (!confirm('Delete this contact information?')) return;
     try {
-      await websiteService.deleteFeedbackPage(id);
+      await websiteService.deleteContactUs(id);
       showSnackbar('Content deleted', 'success');
       setItems(items.filter(c => c.id !== id));
     } catch {
@@ -120,7 +123,7 @@ function WebsiteFeedbackPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton onClick={() => navigate('/')} sx={{ color: '#fff' }}><ArrowBack /></IconButton>
             <Typography variant="h6" sx={{ fontWeight: 600, background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Feedback Page
+              Contact Us
             </Typography>
           </Box>
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ borderRadius: 2, px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
@@ -138,27 +141,47 @@ function WebsiteFeedbackPage() {
       <Box sx={{ p: 3 }}>
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5">Feedback Page</Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ description: '', display_order: items.length }); setContentDialog(true); }}>Add Feedback Page</Button>
+            <Typography variant="h5">Contact Us</Typography>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ address: '', email: '', whatsapp_number: '', display_order: items.length }); setContentDialog(true); }}>Add Contact Information</Button>
           </Box>
-          <Alert severity="info" sx={{ mb: 2 }}>Add feedback page description. Supports alphanumeric, special characters, and hyperlinks.</Alert>
+          <Alert severity="info" sx={{ mb: 2 }}>Add contact information including address, email, and WhatsApp number.</Alert>
           
           {items.map((content) => (
             <Card key={content.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ 
-                      display: '-webkit-box', 
-                      WebkitLineClamp: 3, 
-                      WebkitBoxOrient: 'vertical', 
-                      overflow: 'hidden',
-                      bgcolor: '#f5f5f5',
-                      p: 2,
-                      borderRadius: 1
-                    }}>
-                      {content.description?.replace(/<[^>]*>/g, '') || 'No content'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {content.address && (
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <LocationOn sx={{ color: '#6366f1', fontSize: 20, mt: 0.5 }} />
+                          <Typography variant="body2" sx={{ flex: 1 }}>
+                            {content.address}
+                          </Typography>
+                        </Box>
+                      )}
+                      {content.email && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Email sx={{ color: '#6366f1', fontSize: 20 }} />
+                          <Typography variant="body2">
+                            {content.email}
+                          </Typography>
+                        </Box>
+                      )}
+                      {content.whatsapp_number && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Phone sx={{ color: '#25D366', fontSize: 20 }} />
+                          <Typography variant="body2">
+                            {content.whatsapp_number}
+                          </Typography>
+                        </Box>
+                      )}
+                      {!content.address && !content.email && !content.whatsapp_number && (
+                        <Typography variant="body2" color="text.secondary">
+                          No contact information added
+                        </Typography>
+                      )}
+                    </Box>
                     <Box sx={{ mt: 1 }}><Chip label={content.is_active ? 'Active' : 'Inactive'} color={content.is_active ? 'success' : 'default'} size="small" /></Box>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
@@ -171,26 +194,51 @@ function WebsiteFeedbackPage() {
           ))}
           {items.length === 0 && (
             <Card sx={{ p: 4, textAlign: 'center' }}>
-              <Feedback sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-              <Typography color="text.secondary">No feedback page content added yet.</Typography>
+              <ContactMail sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
+              <Typography color="text.secondary">No contact information added yet.</Typography>
             </Card>
           )}
         </Box>
       </Box>
 
       <Dialog open={contentDialog} onClose={() => setContentDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editingContent?.id ? 'Edit Feedback Page' : 'Add Feedback Page'}</DialogTitle>
+        <DialogTitle>{editingContent?.id ? 'Edit Contact Information' : 'Add Contact Information'}</DialogTitle>
         <DialogContent>
           <TextField 
             fullWidth 
-            label="Description *" 
-            value={editingContent?.description || ''} 
-            onChange={(e) => setEditingContent({ ...editingContent, description: e.target.value })} 
-            margin="normal" 
-            multiline 
-            rows={8}
-            required
-            helperText="Use <a href='url'>link text</a> for hyperlinks"
+            label="Address" 
+            value={editingContent?.address || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, address: e.target.value })} 
+            margin="normal"
+            multiline
+            rows={4}
+            placeholder="Enter full address"
+            InputProps={{
+              startAdornment: <LocationOn sx={{ color: '#6366f1', mr: 1 }} />,
+            }}
+          />
+          <TextField 
+            fullWidth 
+            label="Email ID" 
+            value={editingContent?.email || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, email: e.target.value })} 
+            margin="normal"
+            type="email"
+            placeholder="contact@example.com"
+            InputProps={{
+              startAdornment: <Email sx={{ color: '#6366f1', mr: 1 }} />,
+            }}
+          />
+          <TextField 
+            fullWidth 
+            label="WhatsApp Number" 
+            value={editingContent?.whatsapp_number || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, whatsapp_number: e.target.value })} 
+            margin="normal"
+            placeholder="+91 1234567890"
+            InputProps={{
+              startAdornment: <Phone sx={{ color: '#25D366', mr: 1 }} />,
+            }}
           />
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}>
@@ -199,7 +247,7 @@ function WebsiteFeedbackPage() {
                 label="Display Order" 
                 type="number" 
                 value={editingContent?.display_order || 0} 
-                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) })} 
+                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) || 0 })} 
               />
             </Grid>
             <Grid item xs={6}>
@@ -224,5 +272,5 @@ function WebsiteFeedbackPage() {
   );
 }
 
-export default WebsiteFeedbackPage;
+export default WebsiteContactUs;
 

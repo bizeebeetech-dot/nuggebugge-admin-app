@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -31,10 +31,13 @@ import {
   KeyboardArrowDown,
   Archive,
   Unarchive,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
-import { studentOrderService, StudentOrder } from '../services/student-order.service';
+import { submissionService, Submission } from '../services/submission.service';
+import studentService from '../services/student.service';
+import { Student } from '../services/student.service';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -69,38 +72,113 @@ export default function Evaluation() {
 
   const open = Boolean(anchorEl);
 
-  // Fetch all student orders (Active)
-  const { data: activeOrders = [], isLoading: activeLoading } = useQuery({
-    queryKey: ['student-orders-all', 'active', search],
-    queryFn: () => {
-      // Get all orders and filter by archive_status
-      return studentOrderService.getAll(search || undefined).then((orders) =>
-        orders.filter((order) => (order.archive_status || 'active') === 'active')
-      );
-    },
-    enabled: tabValue === 0,
+  // Fetch all students
+  const { data: allStudents = [], isLoading: studentsLoading } = useQuery({
+    queryKey: ['students-all', search],
+    queryFn: () => studentService.getAll(search || undefined),
   });
 
-  // Fetch all student orders (Archive)
-  const { data: archiveOrders = [], isLoading: archiveLoading } = useQuery({
-    queryKey: ['student-orders-all', 'archive', search],
-    queryFn: () => {
-      // Get all orders and filter by archive_status
-      return studentOrderService.getAll(search || undefined).then((orders) =>
-        orders.filter((order) => order.archive_status === 'archive')
+  // Fetch all active submissions (evaluation_status = 'submitted_for_evaluation')
+  const { data: activeSubmissionsData = [], isLoading: activeSubmissionsLoading } = useQuery({
+    queryKey: ['submissions-active'],
+    queryFn: async () => {
+      const allSubmissions = await submissionService.getAll();
+      // Filter only active submissions
+      return allSubmissions.filter(
+        (submission) => submission.evaluation_status === 'submitted_for_evaluation'
       );
     },
-    enabled: tabValue === 1,
   });
 
-  // Update archive status mutation
-  const updateArchiveStatusMutation = useMutation({
-    mutationFn: ({ id, archiveStatus }: { id: number; archiveStatus: 'active' | 'archive' }) =>
-      studentOrderService.updateArchiveStatus(id, archiveStatus),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student-orders-all'] });
+  // Fetch all archived submissions (evaluation_status = 'evaluated' or 'rejected')
+  const { data: archivedSubmissionsData = [], isLoading: archivedSubmissionsLoading } = useQuery({
+    queryKey: ['submissions-archived'],
+    queryFn: async () => {
+      const allSubmissions = await submissionService.getAll();
+      // Filter only archived submissions
+      return allSubmissions.filter(
+        (submission) =>
+          submission.evaluation_status === 'evaluated' || submission.evaluation_status === 'rejected'
+      );
     },
   });
+
+  // Active Page: Show only students who have active submissions
+  interface StudentWithSubmission {
+    student: Student;
+    submission: Submission;
+  }
+
+  const activeStudentsWithSubmissions = useMemo(() => {
+    const result: StudentWithSubmission[] = [];
+    
+    // For each student, check if they have active submissions
+    allStudents.forEach((student) => {
+      const studentActiveSubmissions = activeSubmissionsData.filter(
+        (submission) => submission.student_id === student.id
+      );
+      
+      // Group by activity_id to get unique student-activity combinations
+      const submissionsByActivity = new Map<number, Submission>();
+      studentActiveSubmissions.forEach((submission) => {
+        if (submission.activity_id) {
+          const key = submission.activity_id;
+          // Keep the most recent submission for each activity
+          if (!submissionsByActivity.has(key) || 
+              new Date(submission.submitted_at) > new Date(submissionsByActivity.get(key)!.submitted_at)) {
+            submissionsByActivity.set(key, submission);
+          }
+        }
+      });
+      
+      // Add each student-activity combination
+      submissionsByActivity.forEach((submission) => {
+        result.push({
+          student,
+          submission,
+        });
+      });
+    });
+    
+    return result;
+  }, [allStudents, activeSubmissionsData]);
+
+  // Archive Page: Show only students who have archived submissions
+  const archivedStudentsWithSubmissions = useMemo(() => {
+    const result: StudentWithSubmission[] = [];
+    
+    // For each student, check if they have archived submissions
+    allStudents.forEach((student) => {
+      const studentArchivedSubmissions = archivedSubmissionsData.filter(
+        (submission) => submission.student_id === student.id
+      );
+      
+      // Group by activity_id to get unique student-activity combinations
+      const submissionsByActivity = new Map<number, Submission>();
+      studentArchivedSubmissions.forEach((submission) => {
+        if (submission.activity_id) {
+          const key = submission.activity_id;
+          // Keep the most recent submission for each activity
+          if (!submissionsByActivity.has(key) || 
+              new Date(submission.submitted_at) > new Date(submissionsByActivity.get(key)!.submitted_at)) {
+            submissionsByActivity.set(key, submission);
+          }
+        }
+      });
+      
+      // Add each student-activity combination
+      submissionsByActivity.forEach((submission) => {
+        result.push({
+          student,
+          submission,
+        });
+      });
+    });
+    
+    return result;
+  }, [allStudents, archivedSubmissionsData]);
+
+  const isLoading = studentsLoading || activeSubmissionsLoading || archivedSubmissionsLoading;
 
   const handleSearch = () => {
     setSearch(searchInput);
@@ -124,12 +202,34 @@ export default function Evaluation() {
     authService.logout();
   };
 
-  const handleMoveToArchive = (order: StudentOrder) => {
-    updateArchiveStatusMutation.mutate({ id: order.id, archiveStatus: 'archive' });
+
+  // Move submission to archive by updating evaluation status to 'evaluated'
+  const updateEvaluationStatusMutation = useMutation({
+    mutationFn: async ({ submissionId, status }: { submissionId: number; status: 'evaluated' | 'submitted_for_evaluation' }) => {
+      return submissionService.evaluate(submissionId, {
+        evaluation_status: status,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submissions-active'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions-archived'] });
+      queryClient.invalidateQueries({ queryKey: ['students-all'] });
+    },
+  });
+
+  const handleMoveToArchive = (submissionId: number) => {
+    // Manual archive - no validation needed
+    updateEvaluationStatusMutation.mutate({
+      submissionId,
+      status: 'evaluated',
+    });
   };
 
-  const handleMoveToActive = (order: StudentOrder) => {
-    updateArchiveStatusMutation.mutate({ id: order.id, archiveStatus: 'active' });
+  const handleMoveToActive = (submissionId: number) => {
+    updateEvaluationStatusMutation.mutate({
+      submissionId,
+      status: 'submitted_for_evaluation',
+    });
   };
 
   const getInitials = () => {
@@ -137,23 +237,21 @@ export default function Evaluation() {
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
 
-  // Filter orders based on search
-  const filterOrders = (orders: StudentOrder[]) => {
-    if (!search) return orders;
+  // Filter students with submissions based on search
+  const filterStudentsWithSubmissions = (studentsWithSubmissions: StudentWithSubmission[]) => {
+    if (!search) return studentsWithSubmissions;
     const searchLower = search.toLowerCase();
-    return orders.filter(
-      (order) =>
-        order.student?.name?.toLowerCase().includes(searchLower) ||
-        order.student?.app_code?.toLowerCase().includes(searchLower) ||
-        order.student?.school_name?.toLowerCase().includes(searchLower) ||
-        order.activity?.title?.toLowerCase().includes(searchLower) ||
-        order.activity?.name?.toLowerCase().includes(searchLower)
+    return studentsWithSubmissions.filter(
+      (item) =>
+        (item.student.name && item.student.name.toLowerCase().includes(searchLower)) ||
+        (item.student.app_code && item.student.app_code.toLowerCase().includes(searchLower)) ||
+        (item.student.school_name && item.student.school_name.toLowerCase().includes(searchLower)) ||
+        (item.submission.activity?.name && item.submission.activity.name.toLowerCase().includes(searchLower))
     );
   };
 
-  const activeOrdersFiltered = filterOrders(activeOrders);
-  const archiveOrdersFiltered = filterOrders(archiveOrders);
-  const isLoading = tabValue === 0 ? activeLoading : archiveLoading;
+  const activeStudentsFiltered = filterStudentsWithSubmissions(activeStudentsWithSubmissions);
+  const archivedStudentsFiltered = filterStudentsWithSubmissions(archivedStudentsWithSubmissions);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
@@ -167,20 +265,23 @@ export default function Evaluation() {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/')}
-          >
-            nuggebugge
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => navigate('/')} sx={{ color: '#fff' }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Evaluation
+            </Typography>
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -360,16 +461,16 @@ export default function Evaluation() {
                         <CircularProgress size={32} />
                       </TableCell>
                     </TableRow>
-                  ) : activeOrdersFiltered.length === 0 ? (
+                  ) : activeStudentsFiltered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 4, color: '#94a3b8' }}>
-                        No active students found
+                        No students with active submissions found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    activeOrdersFiltered.map((order, index) => (
+                    activeStudentsFiltered.map((item, index) => (
                       <TableRow
-                        key={order.id}
+                        key={`${item.student.id}-${item.submission.activity_id}`}
                         sx={{
                           bgcolor: index % 2 === 0 ? '#f0f9ff' : '#fff',
                           '&:hover': { bgcolor: '#e0f2fe' },
@@ -379,21 +480,23 @@ export default function Evaluation() {
                           {index + 1}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>
-                          {order.student?.name?.toUpperCase() || 'N/A'}
+                          {item.student.name
+                            ? item.student.name.toUpperCase()
+                            : 'N/A'}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {order.student?.app_code || 'N/A'}
+                          {item.student.app_code || 'N/A'}
                         </TableCell>
-                        <TableCell>{order.student?.school_name || 'N/A'}</TableCell>
+                        <TableCell>{item.student.school_name || 'N/A'}</TableCell>
                         <TableCell>
-                          {order.activity?.title || order.activity?.name || 'N/A'}
+                          {item.submission.activity?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              navigate(`/evaluation/${order.student_id}/${order.activity_id}/answer`);
+                              navigate(`/evaluation/student/${item.student.id}/activity/${item.submission.activity_id}/answer`);
                             }}
                             sx={{
                               color: '#22c55e',
@@ -413,8 +516,8 @@ export default function Evaluation() {
                             variant="outlined"
                             size="small"
                             startIcon={<Archive />}
-                            onClick={() => handleMoveToArchive(order)}
-                            disabled={updateArchiveStatusMutation.isPending}
+                            onClick={() => handleMoveToArchive(item.submission.id)}
+                            disabled={updateEvaluationStatusMutation.isPending}
                             sx={{
                               color: '#f59e0b',
                               borderColor: '#f59e0b',
@@ -471,16 +574,16 @@ export default function Evaluation() {
                         <CircularProgress size={32} />
                       </TableCell>
                     </TableRow>
-                  ) : archiveOrdersFiltered.length === 0 ? (
+                  ) : archivedStudentsFiltered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 4, color: '#94a3b8' }}>
-                        No archived students found
+                        No students with archived submissions found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    archiveOrdersFiltered.map((order, index) => (
+                    archivedStudentsFiltered.map((item, index) => (
                       <TableRow
-                        key={order.id}
+                        key={`${item.student.id}-${item.submission.activity_id}`}
                         sx={{
                           bgcolor: index % 2 === 0 ? '#f0f9ff' : '#fff',
                           '&:hover': { bgcolor: '#e0f2fe' },
@@ -490,21 +593,23 @@ export default function Evaluation() {
                           {index + 1}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>
-                          {order.student?.name?.toUpperCase() || 'N/A'}
+                          {item.student.name
+                            ? item.student.name.toUpperCase()
+                            : 'N/A'}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {order.student?.app_code || 'N/A'}
+                          {item.student.app_code || 'N/A'}
                         </TableCell>
-                        <TableCell>{order.student?.school_name || 'N/A'}</TableCell>
+                        <TableCell>{item.student.school_name || 'N/A'}</TableCell>
                         <TableCell>
-                          {order.activity?.title || order.activity?.name || 'N/A'}
+                          {item.submission.activity?.name || 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              navigate(`/evaluation/${order.student_id}/${order.activity_id}/answer`);
+                              navigate(`/evaluation/student/${item.student.id}/activity/${item.submission.activity_id}/answer`);
                             }}
                             sx={{
                               color: '#22c55e',
@@ -524,8 +629,8 @@ export default function Evaluation() {
                             variant="outlined"
                             size="small"
                             startIcon={<Unarchive />}
-                            onClick={() => handleMoveToActive(order)}
-                            disabled={updateArchiveStatusMutation.isPending}
+                            onClick={() => handleMoveToActive(item.submission.id)}
+                            disabled={updateEvaluationStatusMutation.isPending}
                             sx={{
                               color: '#10b981',
                               borderColor: '#10b981',

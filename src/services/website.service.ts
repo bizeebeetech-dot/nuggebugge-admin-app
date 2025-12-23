@@ -96,7 +96,8 @@ export interface GovtProjects {
 // How To Implement
 export interface HowToImplement {
   id: string;
-  description: string;
+  pdf_file?: string;
+  link?: string;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -106,7 +107,9 @@ export interface HowToImplement {
 // User Manual
 export interface UserManual {
   id: string;
-  description: string;
+  title?: string;
+  text_tutorial_file?: string;
+  video_tutorial_url?: string;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -134,21 +137,38 @@ export interface OurTeam {
   updated_at: string;
 }
 
-// Complaints
-export interface Complaints {
+
+// Complaint Submission (User-submitted)
+export interface ComplaintSubmission {
   id: string;
-  title: string;
+  header: string;
   description: string;
+  image?: string;
+  submitted_by?: string;
+  is_resolved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Social Sites Links
+export interface SocialSitesLink {
+  id: string;
+  youtube?: string;
+  instagram?: string;
+  facebook?: string;
+  whatsapp?: string;
   display_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-// Feedback Page
-export interface FeedbackPage {
+// Contact Us
+export interface ContactUs {
   id: string;
-  description: string;
+  address?: string;
+  email?: string;
+  whatsapp_number?: string;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -156,11 +176,21 @@ export interface FeedbackPage {
 }
 
 class WebsiteService {
-  // File Upload
+  // File Upload (images only)
   async uploadFile(file: File): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  }
+
+  // Document Upload (all file types)
+  async uploadDocument(file: File): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/upload/document', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.data;
@@ -253,6 +283,16 @@ class WebsiteService {
 
   async deleteStatisticsPageContent(id: string): Promise<void> {
     await api.delete(`/website/statistics-page/${id}`);
+  }
+
+  async getStatisticsPageData(): Promise<Array<{
+    activity_id: number;
+    activity_name: string;
+    student_count: number;
+    school_count: number;
+  }>> {
+    const response = await api.get('/website/public/statistics');
+    return response.data;
   }
 
   // ==================== App Feedback ====================
@@ -390,44 +430,60 @@ class WebsiteService {
     await api.delete(`/website/our-team/${id}`);
   }
 
-  // ==================== Complaints ====================
-  async getComplaints(): Promise<Complaints[]> {
-    const response = await api.get('/website/complaints');
+
+  // ==================== Complaint Submissions ====================
+  async getComplaintSubmissions(): Promise<ComplaintSubmission[]> {
+    const response = await api.get('/website/complaint-submissions');
     return response.data.data;
   }
 
-  async createComplaints(data: Partial<Complaints>): Promise<Complaints> {
-    const response = await api.post('/website/complaints', data);
+  async updateComplaintSubmission(id: string, data: Partial<ComplaintSubmission>): Promise<ComplaintSubmission> {
+    const response = await api.put(`/website/complaint-submissions/${id}`, data);
     return response.data.data;
   }
 
-  async updateComplaints(id: string, data: Partial<Complaints>): Promise<Complaints> {
-    const response = await api.put(`/website/complaints/${id}`, data);
+  async deleteComplaintSubmission(id: string): Promise<void> {
+    await api.delete(`/website/complaint-submissions/${id}`);
+  }
+
+  // ==================== Social Sites Links ====================
+  async getSocialSitesLinks(): Promise<SocialSitesLink[]> {
+    const response = await api.get('/website/social-sites-links');
     return response.data.data;
   }
 
-  async deleteComplaints(id: string): Promise<void> {
-    await api.delete(`/website/complaints/${id}`);
-  }
-
-  // ==================== Feedback Page ====================
-  async getFeedbackPage(): Promise<FeedbackPage[]> {
-    const response = await api.get('/website/feedback-page');
+  async createSocialSitesLink(data: Partial<SocialSitesLink>): Promise<SocialSitesLink> {
+    const response = await api.post('/website/social-sites-links', data);
     return response.data.data;
   }
 
-  async createFeedbackPage(data: Partial<FeedbackPage>): Promise<FeedbackPage> {
-    const response = await api.post('/website/feedback-page', data);
+  async updateSocialSitesLink(id: string, data: Partial<SocialSitesLink>): Promise<SocialSitesLink> {
+    const response = await api.put(`/website/social-sites-links/${id}`, data);
     return response.data.data;
   }
 
-  async updateFeedbackPage(id: string, data: Partial<FeedbackPage>): Promise<FeedbackPage> {
-    const response = await api.put(`/website/feedback-page/${id}`, data);
+  async deleteSocialSitesLink(id: string): Promise<void> {
+    await api.delete(`/website/social-sites-links/${id}`);
+  }
+
+  // ==================== Contact Us ====================
+  async getContactUs(): Promise<ContactUs[]> {
+    const response = await api.get('/website/contact-us');
     return response.data.data;
   }
 
-  async deleteFeedbackPage(id: string): Promise<void> {
-    await api.delete(`/website/feedback-page/${id}`);
+  async createContactUs(data: Partial<ContactUs>): Promise<ContactUs> {
+    const response = await api.post('/website/contact-us', data);
+    return response.data.data;
+  }
+
+  async updateContactUs(id: string, data: Partial<ContactUs>): Promise<ContactUs> {
+    const response = await api.put(`/website/contact-us/${id}`, data);
+    return response.data.data;
+  }
+
+  async deleteContactUs(id: string): Promise<void> {
+    await api.delete(`/website/contact-us/${id}`);
   }
 }
 

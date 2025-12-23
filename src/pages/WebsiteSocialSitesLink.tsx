@@ -24,6 +24,7 @@ import {
   Snackbar,
   CircularProgress,
   Chip,
+  Link,
 } from '@mui/material';
 import {
   Logout,
@@ -33,13 +34,16 @@ import {
   Edit,
   Delete,
   ArrowBack,
-  Report,
+  Share,
+  YouTube,
+  Instagram,
+  Facebook,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
-import websiteService, { Complaints } from '../services/website.service';
+import websiteService, { SocialSitesLink } from '../services/website.service';
 
-function WebsiteComplaints() {
+function WebsiteSocialSitesLink() {
   const navigate = useNavigate();
   const user = authService.getUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -47,9 +51,9 @@ function WebsiteComplaints() {
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  const [items, setItems] = useState<Complaints[]>([]);
+  const [items, setItems] = useState<SocialSitesLink[]>([]);
   const [contentDialog, setContentDialog] = useState(false);
-  const [editingContent, setEditingContent] = useState<Partial<Complaints> | null>(null);
+  const [editingContent, setEditingContent] = useState<Partial<SocialSitesLink> | null>(null);
 
   useEffect(() => {
     loadData();
@@ -57,7 +61,7 @@ function WebsiteComplaints() {
 
   const loadData = async () => {
     try {
-      const content = await websiteService.getComplaints();
+      const content = await websiteService.getSocialSitesLinks();
       setItems(content);
     } catch {
       showSnackbar('Failed to load data', 'error');
@@ -70,15 +74,15 @@ function WebsiteComplaints() {
   };
 
   const handleSaveContent = async () => {
-    if (!editingContent || !editingContent.title || !editingContent.description) {
-      showSnackbar('Title and description are required', 'error');
+    if (!editingContent) {
+      showSnackbar('Please fill in at least one social site link', 'error');
       return;
     }
     try {
       if (editingContent.id) {
-        await websiteService.updateComplaints(editingContent.id, editingContent);
+        await websiteService.updateSocialSitesLink(editingContent.id, editingContent);
       } else {
-        await websiteService.createComplaints(editingContent);
+        await websiteService.createSocialSitesLink(editingContent);
       }
       showSnackbar('Content saved successfully', 'success');
       setContentDialog(false);
@@ -90,9 +94,9 @@ function WebsiteComplaints() {
   };
 
   const handleDeleteContent = async (id: string) => {
-    if (!confirm('Delete this content?')) return;
+    if (!confirm('Delete this social sites link?')) return;
     try {
-      await websiteService.deleteComplaints(id);
+      await websiteService.deleteSocialSitesLink(id);
       showSnackbar('Content deleted', 'success');
       setItems(items.filter(c => c.id !== id));
     } catch {
@@ -120,7 +124,7 @@ function WebsiteComplaints() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton onClick={() => navigate('/')} sx={{ color: '#fff' }}><ArrowBack /></IconButton>
             <Typography variant="h6" sx={{ fontWeight: 600, background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Complaints
+              Social Sites Links
             </Typography>
           </Box>
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ borderRadius: 2, px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
@@ -138,30 +142,55 @@ function WebsiteComplaints() {
       <Box sx={{ p: 3 }}>
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5">Complaints</Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ title: '', description: '', display_order: items.length }); setContentDialog(true); }}>Add Complaint</Button>
+            <Typography variant="h5">Social Sites Links</Typography>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { setEditingContent({ youtube: '', instagram: '', facebook: '', whatsapp: '', display_order: items.length }); setContentDialog(true); }}>Add Social Sites Links</Button>
           </Box>
-          <Alert severity="info" sx={{ mb: 2 }}>Add complaints with title and description. Supports alphanumeric, special characters, and hyperlinks.</Alert>
+          <Alert severity="info" sx={{ mb: 2 }}>Add links for YouTube, Instagram, Facebook, and WhatsApp.</Alert>
           
           {items.map((content) => (
             <Card key={content.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                      {content.title || 'No title'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      display: '-webkit-box', 
-                      WebkitLineClamp: 3, 
-                      WebkitBoxOrient: 'vertical', 
-                      overflow: 'hidden',
-                      bgcolor: '#f5f5f5',
-                      p: 2,
-                      borderRadius: 1
-                    }}>
-                      {content.description?.replace(/<[^>]*>/g, '') || 'No content'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {content.youtube && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <YouTube sx={{ color: '#FF0000', fontSize: 20 }} />
+                          <Link href={content.youtube} target="_blank" sx={{ fontSize: '0.875rem' }}>
+                            {content.youtube}
+                          </Link>
+                        </Box>
+                      )}
+                      {content.instagram && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Instagram sx={{ color: '#E4405F', fontSize: 20 }} />
+                          <Link href={content.instagram} target="_blank" sx={{ fontSize: '0.875rem' }}>
+                            {content.instagram}
+                          </Link>
+                        </Box>
+                      )}
+                      {content.facebook && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Facebook sx={{ color: '#1877F2', fontSize: 20 }} />
+                          <Link href={content.facebook} target="_blank" sx={{ fontSize: '0.875rem' }}>
+                            {content.facebook}
+                          </Link>
+                        </Box>
+                      )}
+                      {content.whatsapp && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Share sx={{ color: '#25D366', fontSize: 20 }} />
+                          <Link href={content.whatsapp} target="_blank" sx={{ fontSize: '0.875rem' }}>
+                            {content.whatsapp}
+                          </Link>
+                        </Box>
+                      )}
+                      {!content.youtube && !content.instagram && !content.facebook && !content.whatsapp && (
+                        <Typography variant="body2" color="text.secondary">
+                          No social links added
+                        </Typography>
+                      )}
+                    </Box>
                     <Box sx={{ mt: 1 }}><Chip label={content.is_active ? 'Active' : 'Inactive'} color={content.is_active ? 'success' : 'default'} size="small" /></Box>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
@@ -174,34 +203,59 @@ function WebsiteComplaints() {
           ))}
           {items.length === 0 && (
             <Card sx={{ p: 4, textAlign: 'center' }}>
-              <Report sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-              <Typography color="text.secondary">No complaints added yet.</Typography>
+              <Share sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
+              <Typography color="text.secondary">No social sites links added yet.</Typography>
             </Card>
           )}
         </Box>
       </Box>
 
       <Dialog open={contentDialog} onClose={() => setContentDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editingContent?.id ? 'Edit Complaint' : 'Add Complaint'}</DialogTitle>
+        <DialogTitle>{editingContent?.id ? 'Edit Social Sites Links' : 'Add Social Sites Links'}</DialogTitle>
         <DialogContent>
           <TextField 
             fullWidth 
-            label="Title *" 
-            value={editingContent?.title || ''} 
-            onChange={(e) => setEditingContent({ ...editingContent, title: e.target.value })} 
-            margin="normal" 
-            required
+            label="YouTube Link" 
+            value={editingContent?.youtube || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, youtube: e.target.value })} 
+            margin="normal"
+            placeholder="https://www.youtube.com/..."
+            InputProps={{
+              startAdornment: <YouTube sx={{ color: '#FF0000', mr: 1 }} />,
+            }}
           />
           <TextField 
             fullWidth 
-            label="Description *" 
-            value={editingContent?.description || ''} 
-            onChange={(e) => setEditingContent({ ...editingContent, description: e.target.value })} 
-            margin="normal" 
-            multiline 
-            rows={8}
-            required
-            helperText="Use <a href='url'>link text</a> for hyperlinks"
+            label="Instagram Link" 
+            value={editingContent?.instagram || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, instagram: e.target.value })} 
+            margin="normal"
+            placeholder="https://www.instagram.com/..."
+            InputProps={{
+              startAdornment: <Instagram sx={{ color: '#E4405F', mr: 1 }} />,
+            }}
+          />
+          <TextField 
+            fullWidth 
+            label="Facebook Link" 
+            value={editingContent?.facebook || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, facebook: e.target.value })} 
+            margin="normal"
+            placeholder="https://www.facebook.com/..."
+            InputProps={{
+              startAdornment: <Facebook sx={{ color: '#1877F2', mr: 1 }} />,
+            }}
+          />
+          <TextField 
+            fullWidth 
+            label="WhatsApp Link" 
+            value={editingContent?.whatsapp || ''} 
+            onChange={(e) => setEditingContent({ ...editingContent, whatsapp: e.target.value })} 
+            margin="normal"
+            placeholder="https://wa.me/..."
+            InputProps={{
+              startAdornment: <Share sx={{ color: '#25D366', mr: 1 }} />,
+            }}
           />
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}>
@@ -210,7 +264,7 @@ function WebsiteComplaints() {
                 label="Display Order" 
                 type="number" 
                 value={editingContent?.display_order || 0} 
-                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) })} 
+                onChange={(e) => setEditingContent({ ...editingContent, display_order: parseInt(e.target.value) || 0 })} 
               />
             </Grid>
             <Grid item xs={6}>
@@ -235,5 +289,5 @@ function WebsiteComplaints() {
   );
 }
 
-export default WebsiteComplaints;
+export default WebsiteSocialSitesLink;
 

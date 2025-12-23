@@ -31,6 +31,10 @@ import {
   Select,
   Tooltip,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import {
   Search,
   Logout,
@@ -68,6 +72,9 @@ export default function StudentOrders() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<StudentOrder | null>(null);
+  const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(dayjs().subtract(1, 'month'));
+  const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [downloading, setDownloading] = useState(false);
 
   // Form state for editing
   const [studentId, setStudentId] = useState('');
@@ -204,6 +211,45 @@ export default function StudentOrders() {
     }).format(amount);
   };
 
+  const handleDownloadExcel = async () => {
+    if (!startDate || !endDate) {
+      alert('Please select both start and end dates');
+      return;
+    }
+
+    if (startDate.isAfter(endDate)) {
+      alert('Start date must be before end date');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const startDateStr = startDate.format('YYYY-MM-DD');
+      const endDateStr = endDate.format('YYYY-MM-DD');
+      
+      const response = await api.get(`/student-orders/export/excel?start_date=${startDateStr}&end_date=${endDateStr}`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Paid_Students_${startDateStr}_to_${endDateStr}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download Excel:', error);
+      alert('Failed to download Excel file. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Header */}
@@ -298,6 +344,35 @@ export default function StudentOrders() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 STUDENT ORDERS
               </Typography>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <DatePicker
+                    label="Start Date"
+                    value={startDate}
+                    onChange={(newValue) => setStartDate(newValue)}
+                    slotProps={{ textField: { size: 'small', sx: { width: 180 } } }}
+                  />
+                  <DatePicker
+                    label="End Date"
+                    value={endDate}
+                    onChange={(newValue) => setEndDate(newValue)}
+                    slotProps={{ textField: { size: 'small', sx: { width: 180 } } }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleDownloadExcel}
+                    disabled={downloading || !startDate || !endDate}
+                    sx={{
+                      bgcolor: '#10b981',
+                      '&:hover': { bgcolor: '#059669' },
+                      textTransform: 'none',
+                      minWidth: 150,
+                    }}
+                  >
+                    {downloading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Download List'}
+                  </Button>
+                </Box>
+              </LocalizationProvider>
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>

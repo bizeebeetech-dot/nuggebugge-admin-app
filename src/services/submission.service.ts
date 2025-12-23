@@ -3,10 +3,12 @@ import api from './api';
 export interface Student {
   id: number;
   app_code: string;
-  first_name: string;
-  last_name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
-  phone: string;
+  phone?: string;
+  school_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -41,12 +43,19 @@ export type EvaluationStatus =
   | 'evaluated'
   | 'rejected';
 
+export interface Answer {
+  questionId: string;
+  answer: string;
+}
+
 export interface Submission {
   id: number;
   student_id: number;
+  activity_id?: number;
   student: Student;
   task_id: number;
   task: Task;
+  activity?: Activity;
   evaluation_status: EvaluationStatus;
   submitted_at: string;
   evaluated_at: string | null;
@@ -54,6 +63,7 @@ export interface Submission {
   score: number | null;
   remarks: string | null;
   submission_data: string | null;
+  answers?: Answer[];
   created_at: string;
   updated_at: string;
 }

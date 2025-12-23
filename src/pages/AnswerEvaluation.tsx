@@ -33,13 +33,14 @@ import {
   KeyboardArrowDown,
   CheckCircle,
   Cancel,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
-import { activityService } from '../services/activity.service';
-import { submissionService, Submission } from '../services/submission.service';
-import { studentOrderService } from '../services/student-order.service';
+import { activityService, ActivityTask } from '../services/activity.service';
+import { submissionService } from '../services/submission.service';
 import { taskService } from '../services/submission.service';
+import { studentService } from '../services/submission.service';
 import { getImageUrl } from '../utils/imageUrl';
 
 interface TabPanelProps {
@@ -103,17 +104,6 @@ export default function AnswerEvaluation() {
 
   const open = Boolean(anchorEl);
 
-  // Fetch student order to get student info
-  const { data: studentOrder } = useQuery({
-    queryKey: ['student-order', studentId, activityId],
-    queryFn: async () => {
-      if (!studentId || !activityId) return null;
-      const orders = await studentOrderService.getByActivityId(parseInt(activityId));
-      return orders.find((o) => o.student_id === parseInt(studentId));
-    },
-    enabled: !!studentId && !!activityId,
-  });
-
   // Fetch activity tasks
   const { data: activityTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['activity-tasks', activityId],
@@ -133,122 +123,178 @@ export default function AnswerEvaluation() {
     queryKey: ['submissions', studentId, activityId],
     queryFn: async () => {
       if (!studentId || !activityId) return [];
-      const allSubmissions: Submission[] = [];
-      for (const task of tasks) {
-        try {
-          const taskSubmissions = await submissionService.getByTask(task.id);
-          const studentSubmission = taskSubmissions.find((s) => s.student_id === parseInt(studentId));
-          if (studentSubmission) {
-            allSubmissions.push(studentSubmission);
-          }
-        } catch (error) {
-          // Task might not have submissions yet
-        }
+      // Fetch all submissions for this student and activity
+      try {
+        const allSubmissions = await submissionService.getAll(undefined, undefined);
+        // Filter submissions for this student and activity
+        return allSubmissions.filter(
+          (s) => s.student_id === parseInt(studentId) && s.activity_id === parseInt(activityId)
+        );
+      } catch (error) {
+        console.error('Error fetching submissions:', error);
+        return [];
       }
-      return allSubmissions;
     },
-    enabled: !!studentId && !!activityId && tasks.length > 0,
+    enabled: !!studentId && !!activityId,
   });
 
-  // Initialize question evaluations when data loads
+  // Fetch student info directly
+  const { data: studentInfoDirect } = useQuery({
+    queryKey: ['student', studentId],
+    queryFn: async () => {
+      if (!studentId) return null;
+      try {
+        return await studentService.getById(parseInt(studentId));
+      } catch (error) {
+        return null;
+      }
+    },
+    enabled: !!studentId,
+  });
+
+  // Initialize question evaluations from all submissions
   useEffect(() => {
-    if (activityTasks.length > 0 && !tasksLoading && !submissionsLoading) {
+    if (!submissionsLoading && !tasksLoading && submissions.length >= 0 && activityTasks.length > 0) {
       // Check if data has actually changed
       const dataChanged = 
-        activityTasks.length !== lastActivityTasksLength.current ||
         submissions.length !== lastSubmissionsLength.current ||
+        activityTasks.length !== lastActivityTasksLength.current ||
         !questionEvaluationsInitialized.current;
       
       if (dataChanged) {
         const evaluations: QuestionEvaluation[] = [];
-        // Find the submission for this activity (one submission per student-activity-task)
-        const activityTask = tasks.find((t) => t.activity_id === parseInt(activityId!));
-        const submission = activityTask 
-          ? submissions.find((s) => s.task_id === activityTask.id && s.student_id === parseInt(studentId!))
-          : undefined;
         
-        // Parse submission_data to get stored evaluations
-        let storedEvaluations: Record<number, any> = {};
-        if (submission?.submission_data) {
-          try {
-            const submissionData = JSON.parse(submission.submission_data);
-            storedEvaluations = submissionData.evaluations || {};
-          } catch (e) {
-            // Invalid JSON, ignore
+        // Process all submissions for this student and activity
+        submissions.forEach((submission) => {
+          if (!submission.answers || !Array.isArray(submission.answers) || submission.answers.length === 0) {
+            return; // Skip submissions without answers
           }
-        }
-        
-        activityTasks.forEach((task, index) => {
-          // Preserve existing state if we've already initialized
-          const existingEval = questionEvaluationsInitialized.current 
-            ? questionEvaluations.find(e => e.taskId === task.id)
-            : null;
           
-          // Get stored evaluation for this activity task
-          const storedEval = storedEvaluations[task.id];
-          
-          // Get answer text - show "Submitted" unless we have actual answer text
-          let answerText = 'Submitted';
-          if (storedEval?.answer && storedEval.answer !== 'Submitted' && !storedEval.answer.startsWith('{')) {
-            // Only use stored answer if it's not JSON and not "Submitted"
-            answerText = storedEval.answer;
-          } else if (submission?.submission_data) {
-            try {
-              const submissionData = JSON.parse(submission.submission_data);
-              // Check for answer in various possible locations
-              const taskEval = submissionData.evaluations?.[task.id];
-              if (taskEval?.answer && taskEval.answer !== 'Submitted' && !taskEval.answer.startsWith('{')) {
-                answerText = taskEval.answer;
-              } else if (submissionData.answer && submissionData.answer !== 'Submitted' && !submissionData.answer.startsWith('{')) {
-                answerText = submissionData.answer;
-              } else if (submissionData.text_answer && !submissionData.text_answer.startsWith('{')) {
-                answerText = submissionData.text_answer;
-              } else if (submissionData.response && !submissionData.response.startsWith('{')) {
-                answerText = submissionData.response;
-              } else if (taskEval?.text_answer && !taskEval.text_answer.startsWith('{')) {
-                answerText = taskEval.text_answer;
-              } else if (taskEval?.response && !taskEval.response.startsWith('{')) {
-                answerText = taskEval.response;
-              }
-              // If no valid answer found, keep "Submitted" (don't show JSON)
-            } catch (e) {
-              // If not JSON and looks like actual text (not JSON), use it
-              if (submission.submission_data && !submission.submission_data.startsWith('{') && !submission.submission_data.startsWith('[')) {
-                answerText = submission.submission_data;
-              }
-              // Otherwise keep "Submitted"
+          // Process each answer in the submission
+          submission.answers.forEach((answerItem, answerIndex) => {
+            // Use questionId from submission answers as the question text
+            const question = answerItem.questionId || `Question ${answerIndex + 1}`;
+            
+            // Get answer from submission
+            const answer = answerItem.answer || 'Submitted';
+            
+            // Try to find matching activity_task to get the day
+            let matchingActivityTask: ActivityTask | undefined;
+            let day = answerIndex + 1; // Default day
+            
+            // Method 1: Match by questionId matching activity_task id
+            if (answerItem.questionId) {
+              matchingActivityTask = activityTasks.find(
+                (at) => at.id.toString() === answerItem.questionId
+              );
             }
-          }
-          
-          evaluations.push({
-            taskId: task.id,
-            day: index + 1,
-            question: task.text_question_1 || task.text_question_2 || task.title || `Question ${index + 1}`,
-            answer: answerText,
-            // Use existing state if available, otherwise use stored evaluation, otherwise use submission status
-            accept: existingEval?.accept !== undefined && existingEval?.accept !== null
-              ? existingEval.accept
-              : (storedEval?.accept !== undefined && storedEval?.accept !== null
-                ? storedEval.accept
-                : (submission?.evaluation_status === 'evaluated' ? true : submission?.evaluation_status === 'rejected' ? false : null)),
-            reject: existingEval?.reject !== undefined && existingEval?.reject !== null
-              ? existingEval.reject
-              : (storedEval?.reject !== undefined && storedEval?.reject !== null
-                ? storedEval.reject
-                : (submission?.evaluation_status === 'rejected' ? true : null)),
-            remarks: existingEval?.remarks || storedEval?.remarks || submission?.remarks || '',
-            submissionId: submission?.id,
+            
+            // Method 2: Match by questionId containing day info
+            if (!matchingActivityTask && answerItem.questionId) {
+              const dayMatch = answerItem.questionId.match(/day[_\s]*(\d+)/i);
+              if (dayMatch) {
+                const dayNum = parseInt(dayMatch[1]);
+                matchingActivityTask = activityTasks.find((at) => at.day === dayNum);
+                if (matchingActivityTask && matchingActivityTask.day !== undefined) {
+                  day = matchingActivityTask.day;
+                } else {
+                  day = dayNum;
+                }
+              }
+            }
+            
+            // Method 3: Match by questionId matching question text
+            if (!matchingActivityTask && answerItem.questionId) {
+              matchingActivityTask = activityTasks.find(
+                (at) => 
+                  at.text_question_1 === answerItem.questionId ||
+                  at.text_question_2 === answerItem.questionId ||
+                  at.title === answerItem.questionId
+              );
+              if (matchingActivityTask?.day !== undefined) {
+                day = matchingActivityTask.day;
+              }
+            }
+            
+            // Method 4: Match by index if questionId is like "text_1", "text_2", etc.
+            if (!matchingActivityTask && answerItem.questionId) {
+              const textMatch = answerItem.questionId.match(/text[_\s]*(\d+)/i);
+              if (textMatch) {
+                const textNum = parseInt(textMatch[1]);
+                matchingActivityTask = activityTasks.find((at) => {
+                  if (textNum === 1 && at.text_question_1) return true;
+                  if (textNum === 2 && at.text_question_2) return true;
+                  return false;
+                });
+                if (matchingActivityTask?.day !== undefined) {
+                  day = matchingActivityTask.day;
+                }
+              }
+            }
+            
+            // Method 5: Use activity_task by answer index as fallback
+            if (!matchingActivityTask && activityTasks.length > answerIndex) {
+              matchingActivityTask = activityTasks[answerIndex];
+              if (matchingActivityTask?.day !== undefined) {
+                day = matchingActivityTask.day;
+              }
+            }
+            
+            // Check if we already have this exact question in the evaluations array (avoid duplicates)
+            const alreadyExists = evaluations.some(
+              (e) => e.submissionId === submission.id && e.question === question
+            );
+            
+            if (!alreadyExists) {
+              // Parse submission_data to get stored evaluation state
+              // Store evaluations by questionId (not taskId) since each task has 2 questions
+              let storedEval: any = null;
+              if (submission.submission_data) {
+                try {
+                  const submissionData = JSON.parse(submission.submission_data);
+                  // Find evaluation by questionId (the question text itself)
+                  const questionEval = submissionData.evaluations?.[question];
+                  if (questionEval) {
+                    storedEval = questionEval;
+                  }
+                } catch (e) {
+                  // Invalid JSON, ignore
+                }
+              }
+              
+              evaluations.push({
+                taskId: matchingActivityTask?.id ?? submission.task_id ?? 0,
+                day: day,
+                question: question, // Use questionId from submission answers
+                answer: answer,
+                accept: storedEval?.accept !== undefined && storedEval?.accept !== null
+                  ? storedEval.accept
+                  : (submission.evaluation_status === 'evaluated' ? true : 
+                     submission.evaluation_status === 'rejected' ? false : null),
+                reject: storedEval?.reject !== undefined && storedEval?.reject !== null
+                  ? storedEval.reject
+                  : (submission.evaluation_status === 'rejected' ? true : null),
+                remarks: storedEval?.remarks || submission.remarks || '',
+                submissionId: submission.id,
+              });
+            }
           });
+        });
+        
+        // Sort by day, then by question
+        evaluations.sort((a, b) => {
+          if (a.day !== b.day) return a.day - b.day;
+          return a.question.localeCompare(b.question);
         });
         
         setQuestionEvaluations(evaluations);
         questionEvaluationsInitialized.current = true;
-        lastActivityTasksLength.current = activityTasks.length;
         lastSubmissionsLength.current = submissions.length;
+        lastActivityTasksLength.current = activityTasks.length;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityTasks.length, tasks.length, submissions.length, tasksLoading, submissionsLoading]);
+  }, [submissions.length, submissionsLoading, activityTasks.length, tasksLoading]);
 
   // Initialize photo evaluations
   useEffect(() => {
@@ -316,6 +362,108 @@ export default function AnswerEvaluation() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityTasks.length, tasks.length, submissions.length, tasksLoading, submissionsLoading]);
+
+  // Function to check if all questions and photos are evaluated for this student-activity combination
+  const checkAllEvaluationsComplete = async (): Promise<{ complete: boolean; message: string; submissionId?: number }> => {
+    try {
+      if (!studentId || !activityId) {
+        return { complete: false, message: 'Student ID or Activity ID is missing.' };
+      }
+
+      // Get all submissions for this student and activity
+      const allSubmissions = await submissionService.getAll();
+      const studentActivitySubmissions = allSubmissions.filter(
+        (s) => s.student_id === parseInt(studentId) && s.activity_id === parseInt(activityId)
+      );
+
+      if (studentActivitySubmissions.length === 0) {
+        return { complete: false, message: 'No submissions found for this student and activity.' };
+      }
+
+      // Get all activity tasks to know what questions and photos should exist
+      const activityTasks = await activityService.getTasks(parseInt(activityId));
+      
+      // Check if all questions and photos are evaluated across all submissions
+      for (const submission of studentActivitySubmissions) {
+        if (!submission.submission_data) {
+          return { complete: false, message: 'Some submissions have not been evaluated yet.', submissionId: submission.id };
+        }
+
+        try {
+          const submissionData = JSON.parse(submission.submission_data);
+          const evaluations = submissionData.evaluations || {};
+          const photoEvaluations = submissionData.photoEvaluations || {};
+
+          // Check each question in the submission's answers array
+          if (submission.answers && Array.isArray(submission.answers)) {
+            for (const answer of submission.answers) {
+              if (answer.questionId) {
+                const questionEval = evaluations[answer.questionId];
+                // Check if question has been evaluated: either accept === true OR reject === true
+                // If evaluation doesn't exist, it's not evaluated
+                if (!questionEval) {
+                  return { 
+                    complete: false, 
+                    message: `Question "${answer.questionId}" has not been evaluated yet. Please accept or reject it.`, 
+                    submissionId: submission.id 
+                  };
+                }
+                // Check if accept or reject is explicitly true (not null, undefined, or false)
+                // Must have exactly one of them as true
+                const isAccepted = questionEval.accept === true;
+                const isRejected = questionEval.reject === true;
+                // If both are not true (could be null, undefined, false), it's not evaluated
+                if (!isAccepted && !isRejected) {
+                  console.log(`Question "${answer.questionId}" not evaluated: accept=${questionEval.accept}, reject=${questionEval.reject}`);
+                  return { 
+                    complete: false, 
+                    message: `Question "${answer.questionId}" has not been evaluated yet.`, 
+                    submissionId: submission.id 
+                  };
+                }
+              }
+            }
+          }
+
+          // Check if all photos from activity tasks are evaluated
+          for (const task of activityTasks) {
+            if (task.photo_url) {
+              const photoEval = photoEvaluations[task.id];
+              // Check if photo has been evaluated: either accept === true OR reject === true
+              // If evaluation doesn't exist, it's not evaluated
+              if (!photoEval) {
+                return { 
+                  complete: false, 
+                  message: `Photo for Day ${task.day || 'N/A'} has not been evaluated yet. Please accept or reject it.`, 
+                  submissionId: submission.id 
+                };
+              }
+              // Check if accept or reject is explicitly true (not null, undefined, or false)
+              // If both are not true (could be null, undefined, false), it's not evaluated
+              // Explicitly check for null, false, or undefined
+              if (photoEval.accept !== true && photoEval.reject !== true) {
+                console.log(`Photo Day ${task.day || 'N/A'} not evaluated: accept=${photoEval.accept} (type: ${typeof photoEval.accept}), reject=${photoEval.reject} (type: ${typeof photoEval.reject})`);
+                return { 
+                  complete: false, 
+                  message: `Photo for Day ${task.day || 'N/A'} has not been evaluated yet.`, 
+                  submissionId: submission.id 
+                };
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing submission data:', e);
+          return { complete: false, message: 'Error parsing submission data.', submissionId: submission.id };
+        }
+      }
+
+      // Return the first submission ID for archiving (they should all be for the same student-activity)
+      return { complete: true, message: 'All evaluations are complete.', submissionId: studentActivitySubmissions[0].id };
+    } catch (error: any) {
+      console.error('Error checking evaluations:', error);
+      return { complete: false, message: `Error checking evaluations: ${error?.message || 'Unknown error'}` };
+    }
+  };
 
   // Update evaluation mutation for questions
   const updateEvaluationMutation = useMutation({
@@ -395,24 +543,31 @@ export default function AnswerEvaluation() {
       }
       
       // Store all evaluations in submission_data
+      // Use questionId (question text) as key since each task has 2 questions
       for (const evalData of data.questionEvaluations) {
-        console.log(`Processing evaluation for activity task ${evalData.taskId}, day ${evalData.day}`);
+        console.log(`Processing evaluation for question ${evalData.question}, day ${evalData.day}`);
         
-        // Store evaluation data
-        submissionData.evaluations[evalData.taskId] = {
+        // Store evaluation data by questionId (question text) to handle multiple questions per task
+        submissionData.evaluations[evalData.question] = {
           day: evalData.day,
           question: evalData.question,
           answer: evalData.answer,
           accept: evalData.accept,
           reject: evalData.reject,
           remarks: evalData.remarks,
+          taskId: evalData.taskId,
         };
       }
       
       // Determine overall status and remarks
+      // Only mark as evaluated/rejected if ALL questions have been explicitly evaluated (accept === true OR reject === true)
+      const allEvaluated = data.questionEvaluations.every(e => e.accept === true || e.reject === true);
       const hasAccepted = data.questionEvaluations.some(e => e.accept === true);
       const hasRejected = data.questionEvaluations.some(e => e.reject === true);
-      const overallStatus = hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation';
+      // Only change status if all questions are evaluated, otherwise keep as submitted_for_evaluation
+      const overallStatus = allEvaluated 
+        ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
+        : 'submitted_for_evaluation';
       
       const allRemarks = data.questionEvaluations
         .filter(e => e.reject && e.remarks)
@@ -460,7 +615,25 @@ export default function AnswerEvaluation() {
       // Refetch submissions to get updated data
       await queryClient.invalidateQueries({ queryKey: ['submissions', studentId, activityId] });
       await queryClient.refetchQueries({ queryKey: ['submissions', studentId, activityId] });
-      alert('Evaluation updated successfully!');
+      
+      // Check if all evaluations are complete and auto-move to archive
+      const checkResult = await checkAllEvaluationsComplete();
+      if (checkResult.complete && checkResult.submissionId) {
+        try {
+          await submissionService.evaluate(checkResult.submissionId, {
+            evaluation_status: 'evaluated',
+          });
+          // Invalidate queries to refresh the evaluation list
+          await queryClient.invalidateQueries({ queryKey: ['submissions-active'] });
+          await queryClient.invalidateQueries({ queryKey: ['submissions-archived'] });
+          alert('All evaluations are complete! Student has been automatically moved to archive.');
+        } catch (error: any) {
+          console.error('Error auto-archiving:', error);
+          alert('Evaluation updated successfully, but failed to auto-archive. Please move manually.');
+        }
+      } else {
+        alert('Evaluation updated successfully!');
+      }
     },
     onError: (error: any) => {
       console.error('Error updating evaluation:', error);
@@ -560,9 +733,14 @@ export default function AnswerEvaluation() {
       }
       
       // Determine overall status and remarks
+      // Only mark as evaluated/rejected if ALL photos have been explicitly evaluated (accept === true OR reject === true)
+      const allEvaluated = data.photoEvaluations.every(e => e.accept === true || e.reject === true);
       const hasAccepted = data.photoEvaluations.some(e => e.accept === true);
       const hasRejected = data.photoEvaluations.some(e => e.reject === true);
-      const overallStatus = hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation';
+      // Only change status if all photos are evaluated, otherwise keep as submitted_for_evaluation
+      const overallStatus = allEvaluated 
+        ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
+        : 'submitted_for_evaluation';
       
       const allReasons = data.photoEvaluations
         .filter(e => e.reject && e.reason)
@@ -608,7 +786,27 @@ export default function AnswerEvaluation() {
       // Refetch submissions to get updated data
       await queryClient.invalidateQueries({ queryKey: ['submissions', studentId, activityId] });
       await queryClient.refetchQueries({ queryKey: ['submissions', studentId, activityId] });
-      alert('Photo evaluation updated successfully!');
+      
+      // Check if all evaluations are complete and auto-move to archive
+      const checkResult = await checkAllEvaluationsComplete();
+      console.log('Check result after photo update:', checkResult);
+      if (checkResult.complete && checkResult.submissionId) {
+        try {
+          await submissionService.evaluate(checkResult.submissionId, {
+            evaluation_status: 'evaluated',
+          });
+          // Invalidate queries to refresh the evaluation list
+          await queryClient.invalidateQueries({ queryKey: ['submissions-active'] });
+          await queryClient.invalidateQueries({ queryKey: ['submissions-archived'] });
+          alert('All evaluations are complete! Student has been automatically moved to archive.');
+        } catch (error: any) {
+          console.error('Error auto-archiving:', error);
+          alert('Photo evaluation updated successfully, but failed to auto-archive. Please move manually.');
+        }
+      } else {
+        console.log('Not all evaluations complete:', checkResult.message);
+        alert(`Photo evaluation updated successfully! ${checkResult.message || ''}`);
+      }
     },
     onError: (error: any) => {
       console.error('Error updating photo evaluation:', error);
@@ -647,34 +845,164 @@ export default function AnswerEvaluation() {
     setPhotoEvaluations(updated);
   };
 
-  const handleQuestionAccept = (index: number, event?: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle individual question accept - update submission immediately
+  const handleQuestionAccept = async (index: number, event?: React.ChangeEvent<HTMLInputElement>) => {
     if (event) {
       event.stopPropagation();
     }
     const updated = [...questionEvaluations];
     const currentAccept = updated[index]?.accept;
+    const newAcceptValue = !currentAccept;
+    const evaluation = updated[index];
+    
     updated[index] = {
-      ...updated[index],
-      accept: !currentAccept, // Toggle accept
-      reject: false, // Always uncheck reject when accept is toggled
-      remarks: !currentAccept ? updated[index].remarks : '', // Clear remarks if unchecking accept
+      ...evaluation,
+      accept: newAcceptValue,
+      reject: false,
+      remarks: newAcceptValue ? '' : evaluation.remarks, // Clear remarks if accepting
     };
     setQuestionEvaluations(updated);
+
+    // If accepting and we have a submissionId, immediately update the submission
+    if (newAcceptValue && evaluation.submissionId) {
+      try {
+        // Get the current submission to update submission_data
+        const submission = await submissionService.getById(evaluation.submissionId);
+        const submissionData = submission.submission_data ? JSON.parse(submission.submission_data) : { evaluations: {} };
+        
+        // Update this question's evaluation in submission_data
+        // Use questionId (question text) as key since each task has 2 questions
+        if (!submissionData.evaluations) {
+          submissionData.evaluations = {};
+        }
+        submissionData.evaluations[evaluation.question] = {
+          day: evaluation.day,
+          question: evaluation.question,
+          answer: evaluation.answer,
+          accept: true,
+          reject: false,
+          remarks: '',
+          taskId: evaluation.taskId,
+        };
+        
+        // Determine overall status based on all questions
+        // Only mark as evaluated/rejected if ALL questions have been explicitly evaluated
+        const allEvaluations = [...updated];
+        const allEvaluated = allEvaluations.every(e => e.accept === true || e.reject === true);
+        const hasAccepted = allEvaluations.some(e => e.accept === true);
+        const hasRejected = allEvaluations.some(e => e.reject === true);
+        // Only change status if all questions are evaluated, otherwise keep as submitted_for_evaluation
+        const overallStatus = allEvaluated 
+          ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
+          : 'submitted_for_evaluation';
+        
+        // Update evaluation status (sets evaluated_at and evaluator_id)
+        await submissionService.evaluate(evaluation.submissionId, {
+          evaluation_status: overallStatus as any,
+          remarks: undefined,
+        });
+        
+        // Update submission_data with all evaluations
+        await submissionService.update(evaluation.submissionId, {
+          submission_data: JSON.stringify(submissionData),
+        });
+        
+        // Refetch submissions to get updated data
+        await queryClient.invalidateQueries({ queryKey: ['submissions', studentId, activityId] });
+      } catch (error: any) {
+        console.error('Error evaluating submission:', error);
+        // Revert the change on error
+        updated[index] = {
+          ...evaluation,
+          accept: currentAccept,
+        };
+        setQuestionEvaluations(updated);
+        alert(`Failed to update evaluation: ${error?.response?.data?.message || error?.message || 'Unknown error'}`);
+      }
+    }
   };
 
-  const handleQuestionReject = (index: number, event?: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle individual question reject - update submission immediately
+  const handleQuestionReject = async (index: number, event?: React.ChangeEvent<HTMLInputElement>) => {
     if (event) {
       event.stopPropagation();
     }
     const updated = [...questionEvaluations];
     const currentReject = updated[index]?.reject;
+    const newRejectValue = !currentReject;
+    const evaluation = updated[index];
+    
     updated[index] = {
-      ...updated[index],
-      reject: !currentReject, // Toggle reject
-      accept: false, // Always uncheck accept when reject is toggled
-      remarks: !currentReject ? '' : updated[index].remarks, // Clear remarks if unchecking reject
+      ...evaluation,
+      reject: newRejectValue,
+      accept: false,
+      remarks: newRejectValue ? evaluation.remarks : '', // Keep remarks if rejecting
     };
     setQuestionEvaluations(updated);
+
+    // If rejecting and we have a submissionId, immediately update the submission
+    if (newRejectValue && evaluation.submissionId) {
+      try {
+        // Get the current submission to update submission_data
+        const submission = await submissionService.getById(evaluation.submissionId);
+        const submissionData = submission.submission_data ? JSON.parse(submission.submission_data) : { evaluations: {} };
+        
+        // Update this question's evaluation in submission_data
+        // Use questionId (question text) as key since each task has 2 questions
+        if (!submissionData.evaluations) {
+          submissionData.evaluations = {};
+        }
+        submissionData.evaluations[evaluation.question] = {
+          day: evaluation.day,
+          question: evaluation.question,
+          answer: evaluation.answer,
+          accept: false,
+          reject: true,
+          remarks: evaluation.remarks || 'Rejected',
+          taskId: evaluation.taskId,
+        };
+        
+        // Determine overall status based on all questions
+        // Only mark as evaluated/rejected if ALL questions have been explicitly evaluated
+        const allEvaluations = [...updated];
+        const allEvaluated = allEvaluations.every(e => e.accept === true || e.reject === true);
+        const hasAccepted = allEvaluations.some(e => e.accept === true);
+        const hasRejected = allEvaluations.some(e => e.reject === true);
+        // Only change status if all questions are evaluated, otherwise keep as submitted_for_evaluation
+        const overallStatus = allEvaluated 
+          ? (hasAccepted ? 'evaluated' : hasRejected ? 'rejected' : 'submitted_for_evaluation')
+          : 'submitted_for_evaluation';
+        
+        // Collect all rejection remarks
+        const allRemarks = allEvaluations
+          .filter(e => e.reject && e.remarks)
+          .map(e => `Day ${e.day}: ${e.remarks}`)
+          .join('; ');
+        
+        // Update evaluation status (sets evaluated_at and evaluator_id) with remarks
+        await submissionService.evaluate(evaluation.submissionId, {
+          evaluation_status: overallStatus as any,
+          remarks: allRemarks || evaluation.remarks || 'Rejected',
+        });
+        
+        // Update submission_data with all evaluations
+        await submissionService.update(evaluation.submissionId, {
+          submission_data: JSON.stringify(submissionData),
+        });
+        
+        // Refetch submissions to get updated data
+        await queryClient.invalidateQueries({ queryKey: ['submissions', studentId, activityId] });
+      } catch (error: any) {
+        console.error('Error evaluating submission:', error);
+        // Revert the change on error
+        updated[index] = {
+          ...evaluation,
+          reject: currentReject,
+        };
+        setQuestionEvaluations(updated);
+        alert(`Failed to update evaluation: ${error?.response?.data?.message || error?.message || 'Unknown error'}`);
+      }
+    }
   };
 
   const handlePhotoAccept = (index: number) => {
@@ -714,8 +1042,16 @@ export default function AnswerEvaluation() {
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
 
-  const studentName = studentOrder?.student?.name || 'Loading...';
-  const appCode = studentOrder?.student?.app_code || 'Loading...';
+  // Get student info from submissions or direct fetch
+  const studentInfo = submissions.length > 0 && submissions[0].student 
+    ? submissions[0].student 
+    : studentInfoDirect || null;
+  const studentName = studentInfo?.name 
+    ? studentInfo.name 
+    : (studentInfo?.first_name && studentInfo?.last_name 
+      ? `${studentInfo.first_name} ${studentInfo.last_name}` 
+      : studentInfo?.first_name || 'Loading...');
+  const appCode = studentInfo?.app_code || 'Loading...';
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
@@ -729,20 +1065,23 @@ export default function AnswerEvaluation() {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/evaluation')}
-          >
-            nuggebugge
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => navigate('/evaluation')} sx={{ color: '#fff' }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Answer Evaluation
+            </Typography>
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -901,54 +1240,72 @@ export default function AnswerEvaluation() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        questionEvaluations.map((evaluation, index) => (
-                          <TableRow key={evaluation.taskId} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
-                            <TableCell>{evaluation.day}</TableCell>
-                            <TableCell>{evaluation.question}</TableCell>
-                            <TableCell>{evaluation.answer}</TableCell>
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={!!evaluation.accept}
-                                onChange={(e) => handleQuestionAccept(index, e)}
-                                onClick={(e) => e.stopPropagation()}
-                                sx={{
-                                  color: '#22c55e',
-                                  '&.Mui-checked': {
+                        questionEvaluations.map((evaluation, index) => {
+                          // Create a truly unique key using submissionId, question, answer, and index
+                          const questionKey = `${evaluation.submissionId || 'new'}-${evaluation.question}-${evaluation.answer}-${index}`;
+                          const sanitizedKey = questionKey.replace(/[^a-zA-Z0-9-]/g, '-').substring(0, 100);
+                          return (
+                            <TableRow key={`q-${sanitizedKey}`} sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                              <TableCell>{evaluation.day}</TableCell>
+                              <TableCell>{evaluation.question}</TableCell>
+                              <TableCell>{evaluation.answer}</TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={!!evaluation.accept}
+                                  onChange={(e) => handleQuestionAccept(index, e)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  sx={{
                                     color: '#22c55e',
-                                  },
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={!!evaluation.reject}
-                                onChange={(e) => handleQuestionReject(index, e)}
-                                onClick={(e) => e.stopPropagation()}
-                                sx={{
-                                  color: '#ef4444',
-                                  '&.Mui-checked': {
+                                    '&.Mui-checked': {
+                                      color: '#22c55e',
+                                    },
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={!!evaluation.reject}
+                                  onChange={(e) => handleQuestionReject(index, e)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  sx={{
                                     color: '#ef4444',
-                                  },
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <TextField
-                                size="small"
-                                placeholder="Only for REJECTION"
-                                value={evaluation.remarks}
-                                onChange={(e) => {
-                                  const updated = [...questionEvaluations];
-                                  updated[index].remarks = e.target.value;
-                                  setQuestionEvaluations(updated);
-                                }}
-                                disabled={!evaluation.reject}
-                                sx={{ width: 200 }}
-                                fullWidth
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                    '&.Mui-checked': {
+                                      color: '#ef4444',
+                                    },
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  placeholder="Only for REJECTION"
+                                  value={evaluation.remarks}
+                                  onChange={async (e) => {
+                                    const updated = [...questionEvaluations];
+                                    updated[index].remarks = e.target.value;
+                                    setQuestionEvaluations(updated);
+                                    
+                                    // If rejected and has submissionId, update remarks immediately
+                                    if (evaluation.reject && evaluation.submissionId && e.target.value) {
+                                      try {
+                                        await submissionService.evaluate(evaluation.submissionId, {
+                                          evaluation_status: 'rejected',
+                                          remarks: e.target.value,
+                                        });
+                                        await queryClient.invalidateQueries({ queryKey: ['submissions', studentId, activityId] });
+                                      } catch (error: any) {
+                                        console.error('Error updating remarks:', error);
+                                      }
+                                    }
+                                  }}
+                                  disabled={!evaluation.reject}
+                                  sx={{ width: 200 }}
+                                  fullWidth
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -993,7 +1350,7 @@ export default function AnswerEvaluation() {
                     </Grid>
                   ) : (
                     photoEvaluations.map((evaluation, index) => (
-                      <Grid item xs={12} md={4} key={evaluation.taskId}>
+                      <Grid item xs={12} md={4} key={`photo-${evaluation.taskId}-${evaluation.day}-${evaluation.submissionId || index}`}>
                         <Card>
                           <CardMedia
                             component="img"

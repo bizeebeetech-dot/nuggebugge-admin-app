@@ -440,7 +440,7 @@ export default function StudentList() {
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              navigate(`/evaluation/${order.student_id}/${order.activity_id}/answer`);
+                              navigate(`/evaluation/student/${order.student_id}/activity/${order.activity_id}/answer`);
                             }}
                             sx={{
                               color: '#22c55e',
@@ -537,8 +537,7 @@ export default function StudentList() {
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              // Navigate to evaluation page or open evaluation dialog
-                              alert('Evaluation feature - to be implemented');
+                              navigate(`/evaluation/student/${order.student_id}/activity/${order.activity_id}/answer`);
                             }}
                             sx={{
                               color: '#22c55e',
