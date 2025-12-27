@@ -25,9 +25,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
+  Switch,
+  Chip,
 } from '@mui/material';
 import {
   Search,
@@ -35,13 +34,14 @@ import {
   Person,
   KeyboardArrowDown,
   Add,
-  Visibility,
+  Edit,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/auth.service';
-import { activityService, taskService, Task } from '../services/submission.service';
+import activityService, { Activity } from '../services/activity.service';
 
-export default function TaskList() {
+export default function ActivityList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = authService.getUser();
@@ -50,40 +50,40 @@ export default function TaskList() {
   const [search, setSearch] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<number | ''>('');
-  const [taskNumber, setTaskNumber] = useState('');
-  const [taskTitle, setTaskTitle] = useState('');
-  const [taskDescription, setTaskDescription] = useState('');
+  const [title, setTitle] = useState('');
+  const [summary, setSummary] = useState('');
+  const [price, setPrice] = useState('');
 
   const open = Boolean(anchorEl);
 
   // Fetch activities
-  const { data: activities = [] } = useQuery({
-    queryKey: ['activities'],
-    queryFn: () => activityService.getAll(),
+  const { data: activities = [], isLoading } = useQuery({
+    queryKey: ['activities', search],
+    queryFn: () => activityService.getAll(search || undefined),
   });
 
-  // Fetch tasks
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', search],
-    queryFn: () => taskService.getAll(),
-  });
-
-  // Create task mutation
-  const createTaskMutation = useMutation({
-    mutationFn: (data: Partial<Task>) => taskService.create(data),
+  // Create activity mutation
+  const createMutation = useMutation({
+    mutationFn: (data: Partial<Activity>) => activityService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       setDialogOpen(false);
       resetForm();
     },
   });
 
+  // Toggle active mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: (id: number) => activityService.toggleActive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    },
+  });
+
   const resetForm = () => {
-    setSelectedActivity('');
-    setTaskNumber('');
-    setTaskTitle('');
-    setTaskDescription('');
+    setTitle('');
+    setSummary('');
+    setPrice('');
   };
 
   const handleSearch = () => {
@@ -108,32 +108,24 @@ export default function TaskList() {
     authService.logout();
   };
 
-  const handleCreateTask = () => {
-    if (!selectedActivity || !taskNumber || !taskTitle) return;
+  const handleCreateActivity = () => {
+    if (!title) return;
 
-    createTaskMutation.mutate({
-      activity_id: selectedActivity as number,
-      task_number: taskNumber,
-      title: taskTitle,
-      description: taskDescription,
+    createMutation.mutate({
+      title,
+      summary,
+      price: parseFloat(price) || 0,
     });
+  };
+
+  const handleToggleActive = (id: number) => {
+    toggleActiveMutation.mutate(id);
   };
 
   const getInitials = () => {
     if (!user) return '?';
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
-
-  // Filter tasks by search
-  const filteredTasks = tasks.filter((task) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      task.task_number.toLowerCase().includes(searchLower) ||
-      task.title.toLowerCase().includes(searchLower) ||
-      task.activity?.name?.toLowerCase().includes(searchLower)
-    );
-  });
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
@@ -147,20 +139,23 @@ export default function TaskList() {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/')}
-          >
-            nuggebugge
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => navigate('/')} sx={{ color: '#fff' }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Activities
+            </Typography>
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -236,7 +231,7 @@ export default function TaskList() {
           <Box sx={{ p: 3, borderBottom: '1px solid #e5e7eb' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                TASK LIST
+                ACTIVITIES
               </Typography>
               <Button
                 variant="contained"
@@ -249,7 +244,7 @@ export default function TaskList() {
                   fontWeight: 600,
                 }}
               >
-                Add Task
+                Create Activity
               </Button>
             </Box>
 
@@ -257,7 +252,7 @@ export default function TaskList() {
             <Box sx={{ display: 'flex', gap: 1 }}>
               <TextField
                 size="small"
-                placeholder="Search tasks..."
+                placeholder="Search activities..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -301,10 +296,10 @@ export default function TaskList() {
               <TableHead>
                 <TableRow sx={{ bgcolor: '#f8fafc' }}>
                   <TableCell sx={{ fontWeight: 600, color: '#475569', width: 60 }}>No</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Activity Name</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Points</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Task Number</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Task Title</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Title</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Summary</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Price</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -315,16 +310,16 @@ export default function TaskList() {
                       <CircularProgress size={32} />
                     </TableCell>
                   </TableRow>
-                ) : filteredTasks.length === 0 ? (
+                ) : activities.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#94a3b8' }}>
-                      No tasks found
+                      No activities found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTasks.map((task, index) => (
+                  activities.map((activity, index) => (
                     <TableRow
-                      key={task.id}
+                      key={activity.id}
                       sx={{
                         bgcolor: index % 2 === 0 ? '#f0f9ff' : '#fff',
                         '&:hover': { bgcolor: '#e0f2fe' },
@@ -333,30 +328,48 @@ export default function TaskList() {
                       <TableCell sx={{ color: '#3b82f6', fontWeight: 500 }}>
                         {index + 1}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500, maxWidth: 300 }}>
-                        {task.activity?.name || 'N/A'}
+                      <TableCell sx={{ fontWeight: 500, maxWidth: 200 }}>
+                        {activity.title || activity.name || 'N/A'}
                       </TableCell>
-                      <TableCell>{task.activity?.points || 20} Points</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>{task.task_number}</TableCell>
-                      <TableCell>{task.title}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Visibility />}
-                          onClick={() => navigate(`/tasks/${task.id}/students`)}
+                      <TableCell sx={{ maxWidth: 300 }}>
+                        <Typography
                           sx={{
-                            color: '#3b82f6',
-                            borderColor: '#3b82f6',
-                            textTransform: 'none',
-                            '&:hover': {
-                              borderColor: '#2563eb',
-                              bgcolor: '#eff6ff',
-                            },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          View Students
-                        </Button>
+                          {activity.summary || activity.description || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>₹{activity.price || 0}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Switch
+                            checked={activity.is_active}
+                            onChange={() => handleToggleActive(activity.id)}
+                            size="small"
+                            color="success"
+                          />
+                          <Chip
+                            label={activity.is_active ? 'Enabled' : 'Disabled'}
+                            size="small"
+                            color={activity.is_active ? 'success' : 'default'}
+                            sx={{ fontWeight: 500 }}
+                          />
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/activities/${activity.id}`)}
+                          sx={{
+                            color: '#3b82f6',
+                            '&:hover': { bgcolor: '#eff6ff' },
+                          }}
+                        >
+                          <Edit />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))
@@ -367,45 +380,35 @@ export default function TaskList() {
         </Paper>
       </Box>
 
-      {/* Add Task Dialog */}
+      {/* Create Activity Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Add New Task</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Create Activity</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Activity</InputLabel>
-              <Select
-                value={selectedActivity}
-                label="Activity"
-                onChange={(e) => setSelectedActivity(e.target.value as number)}
-              >
-                {activities.map((activity) => (
-                  <MenuItem key={activity.id} value={activity.id}>
-                    {activity.name} ({activity.points} Points)
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             <TextField
               fullWidth
-              label="Task Number"
-              placeholder="e.g., task_1"
-              value={taskNumber}
-              onChange={(e) => setTaskNumber(e.target.value)}
+              label="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
             />
             <TextField
               fullWidth
-              label="Task Title"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="Description"
+              label="Summary"
               multiline
               rows={3}
-              value={taskDescription}
-              onChange={(e) => setTaskDescription(e.target.value)}
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+            />
+            <TextField
+              fullWidth
+              label="Price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+              }}
             />
           </Box>
         </DialogContent>
@@ -415,17 +418,17 @@ export default function TaskList() {
           </Button>
           <Button
             variant="contained"
-            onClick={handleCreateTask}
-            disabled={!selectedActivity || !taskNumber || !taskTitle || createTaskMutation.isPending}
+            onClick={handleCreateActivity}
+            disabled={!title || createMutation.isPending}
             sx={{
               bgcolor: '#6366f1',
               '&:hover': { bgcolor: '#4f46e5' },
             }}
           >
-            {createTaskMutation.isPending ? (
+            {createMutation.isPending ? (
               <CircularProgress size={20} sx={{ color: '#fff' }} />
             ) : (
-              'Create Task'
+              'Create'
             )}
           </Button>
         </DialogActions>
@@ -433,4 +436,6 @@ export default function TaskList() {
     </Box>
   );
 }
+
+
 

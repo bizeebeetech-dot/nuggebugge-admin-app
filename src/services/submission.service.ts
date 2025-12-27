@@ -3,10 +3,12 @@ import api from './api';
 export interface Student {
   id: number;
   app_code: string;
-  first_name: string;
-  last_name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
-  phone: string;
+  phone?: string;
+  school_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -14,13 +16,15 @@ export interface Student {
 
 export interface Activity {
   id: number;
-  name: string;
-  activity_type: string;
-  points: number;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  name?: string;
+  title?: string;
+  activity_type?: string;
+  points?: number;
+  description?: string;
+  summary?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Task {
@@ -41,12 +45,19 @@ export type EvaluationStatus =
   | 'evaluated'
   | 'rejected';
 
+export interface Answer {
+  questionId: string;
+  answer: string;
+}
+
 export interface Submission {
   id: number;
   student_id: number;
+  activity_id?: number;
   student: Student;
   task_id: number;
   task: Task;
+  activity?: Activity;
   evaluation_status: EvaluationStatus;
   submitted_at: string;
   evaluated_at: string | null;
@@ -54,6 +65,9 @@ export interface Submission {
   score: number | null;
   remarks: string | null;
   submission_data: string | null;
+  answers?: Answer[];
+  photos?: string[];
+  photo_metadata?: Array<{ time: string; latitude: number; longitude: number }>;
   created_at: string;
   updated_at: string;
 }
@@ -181,6 +195,11 @@ export const submissionService = {
     data: { evaluation_status: EvaluationStatus; score?: number; remarks?: string }
   ): Promise<Submission> {
     const response = await api.patch(`/submissions/${id}/evaluate`, data);
+    return response.data.data;
+  },
+
+  async update(id: number, data: Partial<Submission>): Promise<Submission> {
+    const response = await api.put(`/submissions/${id}`, data);
     return response.data.data;
   },
 

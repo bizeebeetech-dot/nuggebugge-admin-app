@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Tabs,
@@ -13,7 +14,7 @@ import {
   IconButton,
   Divider,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, ArrowBack } from '@mui/icons-material';
 import EntityTable from '../components/EntityTable';
 import authService from '../services/auth.service';
 import { EntityType } from '../services/entity.service';
@@ -24,17 +25,16 @@ interface TabConfig {
   title: string;
 }
 
+// Tabs: State, District, School Board, Class
 const tabs: TabConfig[] = [
-  { label: 'State', entityType: 'state', title: 'State' },
-  { label: 'Degree', entityType: 'degree', title: 'Degree' },
-  { label: 'Branch', entityType: 'branch', title: 'Branch' },
-  { label: 'Batch', entityType: 'batch', title: 'Batch' },
-  { label: 'Implementation year', entityType: 'implementation_year', title: 'Implementation Year' },
-  { label: 'Activity Category', entityType: 'activity_category', title: 'Activity Category' },
-  { label: 'Activity Type', entityType: 'activity_type', title: 'Activity Type' },
+  { label: 'STATE', entityType: 'state', title: 'State' },
+  { label: 'DISTRICT', entityType: 'district', title: 'District' },
+  { label: 'SCHOOL BOARD', entityType: 'school_board', title: 'School Board' },
+  { label: 'CLASS', entityType: 'class', title: 'Class' },
 ];
 
 export default function Entities() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const user = authService.getUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -74,18 +74,23 @@ export default function Entities() {
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            nuggebugge
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton onClick={() => navigate('/')} sx={{ color: '#fff' }}>
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #7877c6 0%, #5a59a5 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Add Entities
+            </Typography>
+          </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
@@ -108,16 +113,6 @@ export default function Entities() {
               >
                 {getInitials()}
               </Avatar>
-              <Box sx={{ ml: 1.5, textAlign: 'left', display: { xs: 'none', sm: 'block' } }}>
-                <Typography
-                  sx={{ color: '#fff', fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.2 }}
-                >
-                  {user?.first_name} {user?.last_name}
-                </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>
-                  {user?.email}
-                </Typography>
-              </Box>
               <KeyboardArrowDown sx={{ color: 'rgba(255,255,255,0.5)', ml: 0.5 }} />
             </IconButton>
 
@@ -162,6 +157,9 @@ export default function Entities() {
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
               ADD ENTITIES
             </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Manage States, Districts, School Boards, and Classes
+            </Typography>
           </Box>
 
           {/* Tabs */}
@@ -169,21 +167,22 @@ export default function Entities() {
             <Tabs
               value={activeTab}
               onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
               sx={{
                 '& .MuiTab-root': {
                   textTransform: 'none',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: '0.95rem',
                   color: '#64748b',
-                  minHeight: 48,
+                  minHeight: 56,
+                  px: 4,
                   '&.Mui-selected': {
-                    color: '#3b82f6',
+                    color: '#1a1a2e',
+                    bgcolor: '#fff',
                   },
                 },
                 '& .MuiTabs-indicator': {
-                  bgcolor: '#3b82f6',
+                  bgcolor: '#7877c6',
+                  height: 3,
                 },
               }}
             >
@@ -192,10 +191,10 @@ export default function Entities() {
                   key={tab.entityType}
                   label={tab.label}
                   sx={{
-                    bgcolor: activeTab === index ? '#fff' : '#e5e7eb',
-                    borderRight: '1px solid #d1d5db',
-                    '&:first-of-type': {
-                      borderTopLeftRadius: 0,
+                    bgcolor: activeTab === index ? '#fff' : '#f1f5f9',
+                    borderRight: index < tabs.length - 1 ? '1px solid #e2e8f0' : 'none',
+                    '&:hover': {
+                      bgcolor: activeTab === index ? '#fff' : '#e2e8f0',
                     },
                   }}
                 />
@@ -204,7 +203,7 @@ export default function Entities() {
           </Box>
 
           {/* Tab Content */}
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 3, bgcolor: '#fff' }}>
             <EntityTable
               entityType={tabs[activeTab].entityType}
               title={tabs[activeTab].title}
@@ -215,4 +214,3 @@ export default function Entities() {
     </Box>
   );
 }
-

@@ -12,7 +12,7 @@ import {
   CardContent,
   Grid,
 } from '@mui/material';
-import { Logout, Person, KeyboardArrowDown, Category, Assignment, People } from '@mui/icons-material';
+import { Logout, Person, KeyboardArrowDown, Category, People, Home as HomeIcon, Event, Groups, BarChart, Dashboard, School, PersonSearch, Receipt, FitnessCenter, Assignment, Flag, Business, Build, MenuBook, Visibility, Group, Report, Feedback, Share, ContactMail } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -144,6 +144,47 @@ function Home() {
 
         {/* Quick Access Cards */}
         <Grid container spacing={3}>
+          {/* Dashboard Card - First */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%)',
+                color: '#fff',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.25)',
+                },
+              }}
+              onClick={() => navigate('/dashboard')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#7877c6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Dashboard sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Dashboard
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  View live stats, downloads & invoices
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
           <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
@@ -176,12 +217,13 @@ function Home() {
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Manage States, Degrees, Branches and more
+                  Manage States, Districts, and School Boards
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
+          {/* Schools Card */}
           <Grid item xs={12} sm={6} md={4}>
             <Card
               sx={{
@@ -192,7 +234,46 @@ function Home() {
                   boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
                 },
               }}
-              onClick={() => navigate('/tasks')}
+              onClick={() => navigate('/schools')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#0891b2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <School sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Schools
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage schools with state, district & board
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Evaluation Card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/evaluation')}
             >
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -210,11 +291,50 @@ function Home() {
                     <Assignment sx={{ color: '#fff', fontSize: 24 }} />
                   </Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Task List
+                    Evaluation
                   </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  View tasks and evaluate student submissions
+                  Evaluate student submissions (Active & Archive)
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Activities Card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/activities')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#ef4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <FitnessCenter sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Activities
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage activities and activity tasks
                 </Typography>
               </CardContent>
             </Card>
@@ -258,6 +378,638 @@ function Home() {
             </Card>
           </Grid>
 
+          {/* Student Profiles Card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/student-profiles')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <PersonSearch sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Student Profiles
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  View & manage student accounts with APP IDs
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Student Orders Card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/student-orders')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#8b5cf6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Receipt sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Student Orders
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Payment & invoice management with Excel export
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+        </Grid>
+
+        {/* Website Pages Section */}
+        <Typography variant="h5" component="h2" sx={{ color: '#1a1a2e', mt: 4, mb: 2 }}>
+          Website Pages Management
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/home')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#ec4899',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <HomeIcon sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 1: Home
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  4 Sliding Cover Photos & Text Content
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/activities')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#8b5cf6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Event sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 2: Activities
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  List of Activities with Photo Attachments
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/about-us')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#14b8a6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Groups sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 3: About Us
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Team Members, Photos & Contact Details
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/statistics')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f97316',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BarChart sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Page 4: Statistics
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Stats & App Feedback Scrolling Window
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Objective */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/objective')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#3b82f6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Flag sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Objective
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage objective descriptions
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Govt Projects */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/govt-projects')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Business sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Govt. Projects
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage government projects descriptions
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* How To Implement */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/how-to-implement')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Build sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    How to Implement
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage implementation guides
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* User Manual */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/user-manual')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#8b5cf6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MenuBook sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    User Manual
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage user manual content
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Vision and Mission */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/vision-mission')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#ec4899',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Visibility sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Vision and Mission
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage vision and mission statements
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Our Team */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/our-team')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#14b8a6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Group sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Our Team
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage team descriptions & photos
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Social Sites Links */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/social-sites-links')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Share sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Social Sites Links
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage YouTube, Instagram, Facebook & WhatsApp links
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Contact Us */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/website/contact-us')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ContactMail sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Contact Us
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Manage address, email & WhatsApp number
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* User Submissions Section */}
+        <Typography variant="h5" component="h2" sx={{ color: '#1a1a2e', mt: 4, mb: 2 }}>
+          User Submissions
+        </Typography>
+        <Grid container spacing={3}>
+          {/* Complaint Submissions */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/complaint-submissions')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Report sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Complaint Submissions
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  View & manage user-submitted complaints
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Feedbacks */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                },
+              }}
+              onClick={() => navigate('/feedbacks')}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#3b82f6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Feedback sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    User Feedbacks
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  View & manage user-submitted feedbacks with ratings
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
     </Box>
@@ -265,4 +1017,3 @@ function Home() {
 }
 
 export default Home;
-

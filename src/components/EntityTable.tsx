@@ -21,13 +21,16 @@ import {
   TableSortLabel,
   Tooltip,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Edit,
   Delete,
   Search,
   Add,
-  Clear,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import entityService, { Entity, EntityType } from '../services/entity.service';
@@ -48,6 +51,10 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null);
   const [deletingEntity, setDeletingEntity] = useState<Entity | null>(null);
   const [entityName, setEntityName] = useState('');
+  const [selectedStateId, setSelectedStateId] = useState<string>('');
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [gradeNumber, setGradeNumber] = useState<string>('');
+  const [displayOrder, setDisplayOrder] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Fetch entities
@@ -56,28 +63,45 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     queryFn: () => entityService.getAll(entityType, search || undefined),
   });
 
+  // Fetch states for district dropdown
+  const { data: states = [] } = useQuery({
+    queryKey: ['entities', 'state'],
+    queryFn: () => entityService.getAll('state'),
+    enabled: entityType === 'district', // Only fetch when on district tab
+  });
+
+  // Fetch boards for class dropdown
+  const { data: boards = [] } = useQuery({
+    queryKey: ['entities', 'school_board'],
+    queryFn: () => entityService.getAll('school_board'),
+    enabled: entityType === 'class', // Only fetch when on class tab
+  });
+
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (name: string) => entityService.create(entityType, { name }),
+    mutationFn: (data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number }) => 
+      entityService.create(entityType, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
+      queryClient.invalidateQueries({ queryKey: ['school-dropdowns'] }); // Refresh school dropdowns
       handleCloseDialog();
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
-      entityService.update(entityType, id, { name }),
+    mutationFn: ({ id, data }: { id: string | number; data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number } }) =>
+      entityService.update(entityType, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
+      queryClient.invalidateQueries({ queryKey: ['school-dropdowns'] }); // Refresh school dropdowns
       handleCloseDialog();
     },
   });
 
   // Toggle active mutation
   const toggleMutation = useMutation({
-    mutationFn: (id: number) => entityService.toggleActive(entityType, id),
+    mutationFn: (id: string | number) => entityService.toggleActive(entityType, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
     },
@@ -85,9 +109,10 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => entityService.delete(entityType, id),
+    mutationFn: (id: string | number) => entityService.delete(entityType, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', entityType] });
+      queryClient.invalidateQueries({ queryKey: ['school-dropdowns'] }); // Refresh school dropdowns
       setDeleteDialogOpen(false);
       setDeletingEntity(null);
     },
@@ -106,9 +131,17 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     if (entity) {
       setEditingEntity(entity);
       setEntityName(entity.name);
+      setSelectedStateId(entity.state_id || '');
+      setSelectedBoardId(entity.board_id || '');
+      setGradeNumber(entity.grade_number?.toString() || '');
+      setDisplayOrder(entity.display_order?.toString() || '');
     } else {
       setEditingEntity(null);
       setEntityName('');
+      setSelectedStateId('');
+      setSelectedBoardId('');
+      setGradeNumber('');
+      setDisplayOrder('');
     }
     setDialogOpen(true);
   };
@@ -117,15 +150,47 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     setDialogOpen(false);
     setEditingEntity(null);
     setEntityName('');
+    setSelectedStateId('');
+    setSelectedBoardId('');
+    setGradeNumber('');
+    setDisplayOrder('');
   };
 
   const handleSubmit = () => {
     if (!entityName.trim()) return;
 
+    const data: { name: string; state_id?: string; board_id?: string; grade_number?: number; display_order?: number } = {
+      name: entityName.trim(),
+    };
+
+    // Include state_id for districts
+    if (entityType === 'district' && selectedStateId) {
+      data.state_id = selectedStateId;
+    }
+
+    // Include board_id, grade_number, and display_order for classes
+    if (entityType === 'class') {
+      if (selectedBoardId) {
+        data.board_id = selectedBoardId;
+      }
+      if (gradeNumber.trim()) {
+        const gradeNum = parseInt(gradeNumber.trim(), 10);
+        if (!isNaN(gradeNum)) {
+          data.grade_number = gradeNum;
+        }
+      }
+      if (displayOrder.trim()) {
+        const orderNum = parseInt(displayOrder.trim(), 10);
+        if (!isNaN(orderNum)) {
+          data.display_order = orderNum;
+        }
+      }
+    }
+
     if (editingEntity) {
-      updateMutation.mutate({ id: editingEntity.id, name: entityName.trim() });
+      updateMutation.mutate({ id: editingEntity.id, data });
     } else {
-      createMutation.mutate(entityName.trim());
+      createMutation.mutate(data);
     }
   };
 
@@ -144,11 +209,30 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
   };
 
+  // Get state name by ID
+  const getStateName = (stateId: string | undefined): string => {
+    if (!stateId) return '-';
+    const state = states.find(s => String(s.id) === stateId);
+    return state?.name || '-';
+  };
+
+  // Get board name by ID
+  const getBoardName = (boardId: string | undefined): string => {
+    if (!boardId) return '-';
+    const board = boards.find(b => String(b.id) === boardId);
+    return board?.name || '-';
+  };
+
   // Sort entities
   const sortedEntities = [...entities].sort((a, b) => {
     const comparison = a.name.localeCompare(b.name);
     return sortDirection === 'asc' ? comparison : -comparison;
   });
+
+  // Check if we need to show state column (for districts)
+  const showStateColumn = entityType === 'district';
+  // Check if we need to show board column (for classes)
+  const showBoardColumn = entityType === 'class';
 
   return (
     <Box>
@@ -176,7 +260,7 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
       <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
         <TextField
           size="small"
-          placeholder="Search"
+          placeholder={`Search ${title.toLowerCase()}...`}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -187,7 +271,7 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 200 }}
+          sx={{ width: 250 }}
         />
         <Button
           variant="contained"
@@ -228,20 +312,33 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
                   Name
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, color: '#475569', width: 200 }}>Actions</TableCell>
+              {showStateColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>State</TableCell>
+              )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Board</TableCell>
+              )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Grade</TableCell>
+              )}
+              {showBoardColumn && (
+                <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Order</TableCell>
+              )}
+              <TableCell sx={{ fontWeight: 600, color: '#475569', width: 100 }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: '#475569', width: 150 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={(showStateColumn || showBoardColumn) ? (showBoardColumn ? 7 : 5) : 4} align="center" sx={{ py: 4 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : sortedEntities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#94a3b8' }}>
-                  No {title.toLowerCase()}s found
+                <TableCell colSpan={(showStateColumn || showBoardColumn) ? (showBoardColumn ? 7 : 5) : 4} align="center" sx={{ py: 4, color: '#94a3b8' }}>
+                  No {title.toLowerCase()}s found. Click "Add {title}" to create one.
                 </TableCell>
               </TableRow>
             ) : (
@@ -257,8 +354,37 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
                     {index + 1}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{entity.name}</TableCell>
+                  {showStateColumn && (
+                    <TableCell>{getStateName(entity.state_id)}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{getBoardName(entity.board_id)}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{entity.grade_number || '-'}</TableCell>
+                  )}
+                  {showBoardColumn && (
+                    <TableCell>{entity.display_order ?? '-'}</TableCell>
+                  )}
                   <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Tooltip title={entity.is_active ? 'Active' : 'Inactive'}>
+                      <Switch
+                        checked={entity.is_active}
+                        onChange={() => toggleMutation.mutate(entity.id)}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#22c55e',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            bgcolor: '#22c55e',
+                          },
+                        }}
+                      />
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
                       <Tooltip title="Edit">
                         <IconButton
                           size="small"
@@ -285,21 +411,6 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
                           <Delete fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title={entity.is_active ? 'Active' : 'Inactive'}>
-                        <Switch
-                          checked={entity.is_active}
-                          onChange={() => toggleMutation.mutate(entity.id)}
-                          size="small"
-                          sx={{
-                            '& .MuiSwitch-switchBase.Mui-checked': {
-                              color: '#6366f1',
-                            },
-                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                              bgcolor: '#6366f1',
-                            },
-                          }}
-                        />
-                      </Tooltip>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -312,7 +423,7 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>
-          {editingEntity ? `Edit ${title}` : `Add ${title}`}
+          {editingEntity ? `Edit ${title}` : `Add New ${title}`}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -321,9 +432,90 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
             label="Name"
             value={entityName}
             onChange={(e) => setEntityName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            onKeyDown={(e) => e.key === 'Enter' && !showStateColumn && !showBoardColumn && handleSubmit()}
+            placeholder={`Enter ${title.toLowerCase()} name`}
             sx={{ mt: 2 }}
           />
+          
+          {/* Grade Number input for classes */}
+          {showBoardColumn && (
+            <TextField
+              fullWidth
+              label="Grade Number"
+              type="number"
+              value={gradeNumber}
+              onChange={(e) => setGradeNumber(e.target.value)}
+              placeholder="Enter grade number (1-12)"
+              inputProps={{ min: 1, max: 12 }}
+              sx={{ mt: 2 }}
+            />
+          )}
+
+          {/* Display Order input for classes */}
+          {showBoardColumn && (
+            <TextField
+              fullWidth
+              label="Display Order"
+              type="number"
+              value={displayOrder}
+              onChange={(e) => setDisplayOrder(e.target.value)}
+              placeholder="Enter display order (0 or higher)"
+              inputProps={{ min: 0 }}
+              sx={{ mt: 2 }}
+            />
+          )}
+          
+          {/* State dropdown for districts */}
+          {showStateColumn && (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>State</InputLabel>
+              <Select
+                value={selectedStateId}
+                label="State"
+                onChange={(e) => setSelectedStateId(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Select State</em>
+                </MenuItem>
+                {states.map((state) => (
+                  <MenuItem key={state.id} value={String(state.id)}>
+                    {state.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {states.length === 0 && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                  No states available. Please add states first.
+                </Typography>
+              )}
+            </FormControl>
+          )}
+
+          {/* Board dropdown for classes */}
+          {showBoardColumn && (
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Board</InputLabel>
+              <Select
+                value={selectedBoardId}
+                label="Board"
+                onChange={(e) => setSelectedBoardId(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Select Board</em>
+                </MenuItem>
+                {boards.map((board) => (
+                  <MenuItem key={board.id} value={String(board.id)}>
+                    {board.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {boards.length === 0 && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                  No boards available. Please add boards first.
+                </Typography>
+              )}
+            </FormControl>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseDialog} sx={{ color: '#64748b' }}>
@@ -332,7 +524,13 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!entityName.trim() || createMutation.isPending || updateMutation.isPending}
+            disabled={
+              !entityName.trim() || 
+              (showStateColumn && !selectedStateId) ||
+              (showBoardColumn && !selectedBoardId) ||
+              createMutation.isPending || 
+              updateMutation.isPending
+            }
             sx={{
               bgcolor: '#6366f1',
               '&:hover': { bgcolor: '#4f46e5' },
@@ -356,6 +554,9 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
           <Typography>
             Are you sure you want to delete "{deletingEntity?.name}"?
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: '#64748b' }}>
@@ -378,4 +579,3 @@ export default function EntityTable({ entityType, title }: EntityTableProps) {
     </Box>
   );
 }
-
